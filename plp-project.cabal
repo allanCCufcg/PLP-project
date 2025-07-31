@@ -1,0 +1,25 @@
+cabal-version:       >=1.10
+name:                plp-project
+version:             0.1.0.0
+build-type:          Simple
+
+library
+  exposed-modules:     EstadoGlobal
+  hs-source-dirs:      src
+  build-depends:       base >=4.7 && <5,
+                       aeson,
+                       bytestring,
+                       directory,
+                       containers
+  default-language:    Haskell2010
+
+executable plp-project-exe
+  main-is:             Main.hs
+  hs-source-dirs:      src
+  build-depends:       base,
+                       aeson,
+                       bytestring,
+                       directory,
+                       containers,
+                       plp-project
+  default-language:    Haskell2010

@@ -1,0 +1,8 @@
+{
+  "jogadores": [],
+  "proximoID": 1,
+  "configs": {
+    "saldoInicial": 100,
+    "apostaMinima": 5
+  }
+}
