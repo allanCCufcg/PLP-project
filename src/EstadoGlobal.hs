@@ -20,7 +20,8 @@ module EstadoGlobal (
     mostrarSaldo,
     mostrarRanking,
     listarJogadores,
-    registrarJogada
+    registrarJogada,
+    resetarDados
 ) where
 
 import GHC.Generics (Generic)
@@ -211,3 +212,17 @@ registrarJogada pid jogo valor ganho = do
             putStrLn $ "Estatísticas atualizadas - Performance média: " ++ show performance ++ "%"
             putStrLn $ "Novo saldo: R$ " ++ show (saldo j)
             putStrLn $ "Histórico: " ++ show (historico j)
+
+resetarDados :: IO ()
+resetarDados = do
+    let dadosIniciais = DadosGlobais {
+            jogadores = [],
+            proximoID = 1,
+            configs = Configuracoes {
+                saldoInicial = 100,
+                apostaMinima = 5
+            }
+        }
+    writeIORef globalData dadosIniciais
+    B.writeFile arquivoDados (encode dadosIniciais)
+    putStrLn "Dados resetados para o estado inicial!"
