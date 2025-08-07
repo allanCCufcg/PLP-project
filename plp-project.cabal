@@ -11,7 +11,8 @@ library
                        bytestring,
                        directory,
                        containers,
-                       random >= 1.2 && < 1.3
+                       random >= 1.2 && < 1.3,
+                       threepenny-gui >= 0.9.4
   default-language:    Haskell2010
 
 executable plp-project-exe
@@ -23,6 +24,11 @@ executable plp-project-exe
                        directory,
                        containers,
                        plp-project,
-                       random >= 1.2 && < 1.3
+                       random >= 1.2 && < 1.3,
+                       threepenny-gui >= 0.9.4
   default-language:    Haskell2010
-  other-modules: Jogos.CaixaSurpresa
+  other-modules: Jogos.CaixaSurpresa,
+                 EstadoGlobal, 
+                 Jogos.CacaNiquel,
+                 Interface.MainUI,
+                 Interface.MenuUI
