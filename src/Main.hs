@@ -8,4 +8,7 @@ import EstadoGlobal (resetarDados)
 main :: IO ()
 main = do
     resetarDados
-    startGUI defaultConfig{ UI.jsPort = Just 8023 } mainUI
+    startGUI defaultConfig
+        { UI.jsPort = Just 8023
+        , UI.jsStatic = Just "static"
+        } mainUI

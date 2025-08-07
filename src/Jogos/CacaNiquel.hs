@@ -1,5 +1,12 @@
 -- src/Jogos/CacaNiquel.hs
-module Jogos.CacaNiquel (jogarCacaNiquel) where
+module Jogos.CacaNiquel
+  ( jogarCacaNiquel
+  , girar
+  , verificarVitoria
+  , multiplicadores
+  , valorAposta
+  , mostraSaldo
+  ) where
 
 import System.Random (randomRIO)
 import Control.Monad (replicateM)
@@ -73,3 +80,11 @@ jogarCacaNiquel pid = do
             else do
               registrarJogada pid "Caca-Niquel" (round valorAposta) 0
               putStrLn "Que pena! Voce nao ganhou desta vez."
+
+mostraSaldo :: PlayerID -> IO Float
+mostraSaldo pid = do
+    dados <- getGlobalData
+    let maybeJogador = filter (\j -> playerID j == pid) (jogadores dados)
+    case maybeJogador of
+        (j:_) -> return (saldo j)
+        []    -> return 0
