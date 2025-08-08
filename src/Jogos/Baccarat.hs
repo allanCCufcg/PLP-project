@@ -28,8 +28,8 @@ sortearMaos = do
 -- Calcula quem esta mais perto de 9 (soma mod 10)
 calcularVencedor :: [Int] -> [Int] -> Aposta
 calcularVencedor maoJ maoB =
-    let pontosJ = sum maoJ mod 10
-        pontosB = sum maoB mod 10
+    let pontosJ = sum maoJ `mod` 10
+        pontosB = sum maoB `mod` 10
     in case compare pontosJ pontosB of
         GT -> Player  -- Jogador mais perto de 9
         LT -> Banco   -- Banco mais perto de 9
@@ -56,8 +56,8 @@ jogarBaccarat pid aposta valorAposta = do
                     -- Determina vencedor
                     let vencedor = calcularVencedor maoJogador maoBanco
                         ganhou = aposta == vencedor
-                        pontosJ = sum maoJogador mod 10
-                        pontosB = sum maoBanco mod 10
+                        pontosJ = sum maoJogador `mod` 10
+                        pontosB = sum maoBanco `mod` 10
                     
                     
                     let premio = if ganhou 
@@ -83,3 +83,4 @@ jogarBaccarat pid aposta valorAposta = do
                         else putStrLn " PERDEU"
                     putStrLn $ "Saldo atual: " ++ show (saldo j - fromIntegral custoTotal + fromIntegral premio)
                     putStrLn ""
+                    
