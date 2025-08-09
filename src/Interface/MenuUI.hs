@@ -6,6 +6,7 @@ import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 import Interface.CacaNiquelUI (cacaniquelUI)
 import Interface.BlackjackUI (blackjackUI)
+import Interface.BaccaratUI (baccaratUI)
 import Interface.RankingUI (rankingUI)
 import Interface.CaixaSurpresaUI (caixaSurpresaUI) 
 import EstadoGlobal (buscarJogadorPorID, Jogador(..))
