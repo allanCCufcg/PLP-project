@@ -5,6 +5,7 @@ module Interface.MenuUI (menuUI) where
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 import Interface.CacaNiquelUI (cacaniquelUI)
+import Interface.BlackjackUI (blackjackUI)
 import EstadoGlobal (buscarJogadorPorID, Jogador(..))
 import Control.Monad (void)
 
@@ -81,10 +82,16 @@ menuUI window jogadorId = do
 
             -- Eventos de clique
             on UI.click baccaratBtn      $ \_ -> liftIO $ putStrLn "Ir para Baccarat"
-            on UI.click blackjackBtn     $ \_ -> liftIO $ putStrLn "Ir para Blackjack"
+            
+            on UI.click blackjackBtn     $ \_ -> do
+                void $ element body # set UI.children []
+                blackjackUI window 
+                
+            -- AQUI ESTÁ A MUDANÇA PRINCIPAL - PASSAMOS O CALLBACK!
             on UI.click cacaniquelBtn    $ \_ -> do
                 void $ element body # set UI.children []
-                cacaniquelUI window
+                cacaniquelUI window jogadorId (menuUI window jogadorId)
+            
             on UI.click caixasurpresaBtn $ \_ -> liftIO $ putStrLn "Ir para Caixa Surpresa"
             on UI.click roletaBtn        $ \_ -> liftIO $ putStrLn "Ir para Roleta"
 
