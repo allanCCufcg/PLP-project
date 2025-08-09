@@ -95,7 +95,9 @@ menuUI window jogadorId = do
                     void $ on UI.click card acao
                     return container
 
-            cardBaccarat <- criarCard "BACCARAT" "static/baccarat.png" $ \_ -> liftIO $ putStrLn "Ir para Baccarat"
+            cardBaccarat <- criarCard "BACCARAT" "static/baccarat.png" $ \_ -> do
+                void $ element body # set UI.children []
+                baccaratUI window jogadorId (menuUI window jogadorId)
             
             cardBlackjack <- criarCard "BLACKJACK" "static/blackjack.png" $ \_ -> do
                 void $ element body # set UI.children []
