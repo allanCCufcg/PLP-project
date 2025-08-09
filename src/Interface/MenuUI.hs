@@ -6,6 +6,7 @@ import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 import Interface.CacaNiquelUI (cacaniquelUI)
 import Interface.BlackjackUI (blackjackUI)
+import Interface.BaccaratUI (baccaratUI)
 import Interface.RankingUI (rankingUI)
 import Interface.CaixaSurpresaUI (caixaSurpresaUI) 
 import EstadoGlobal (buscarJogadorPorID, Jogador(..))
@@ -95,7 +96,9 @@ menuUI window jogadorId = do
                     void $ on UI.click card acao
                     return container
 
-            cardBaccarat <- criarCard "BACCARAT" "static/baccarat.png" $ \_ -> liftIO $ putStrLn "Ir para Baccarat"
+            cardBaccarat <- criarCard "BACCARAT" "static/baccarat.png" $ \_ -> do
+                void $ element body # set UI.children []
+                baccaratUI window jogadorId (menuUI window jogadorId)
             
             cardBlackjack <- criarCard "BLACKJACK" "static/blackjack.png" $ \_ -> do
                 void $ element body # set UI.children []
