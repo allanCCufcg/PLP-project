@@ -7,19 +7,16 @@ import qualified Graphics.UI.Threepenny as UI
 import Interface.CacaNiquelUI (cacaniquelUI)
 import Interface.BlackjackUI (blackjackUI)
 import Interface.RankingUI (rankingUI)
+import Interface.CaixaSurpresaUI (caixaSurpresaUI) 
 import EstadoGlobal (buscarJogadorPorID, Jogador(..))
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 
--- | A função principal para renderizar a interface do menu.
--- Agora aceita o ID do jogador.
 menuUI :: Window -> Int -> UI ()
 menuUI window jogadorId = do
-    -- Limpa a tela antes de renderizar o novo conteúdo
     body <- getBody window
     void $ element body # set UI.children []
 
-    -- Estilo de fundo simples e bonito
     void $ element body # set UI.style
         [ ("background", "linear-gradient(135deg, #1a1a2e, #16213e, #0f3460)")
         , ("color", "#ffffff")
@@ -30,11 +27,9 @@ menuUI window jogadorId = do
         , ("text-align", "center")
         ]
     
-    -- Busca os dados do jogador
     maybeJogador <- liftIO $ buscarJogadorPorID jogadorId
     case maybeJogador of
         Just jogador -> do
-            -- Barra superior com informações do jogador
             let nomeStr = "👤 " ++ nome jogador
                 idStr = "🎫 ID: " ++ show (playerID jogador)
                 saldoStr = "💰 $" ++ show (saldo jogador)
@@ -51,7 +46,6 @@ menuUI window jogadorId = do
                                 , ("border", "2px solid #ffd700")
                                 ]
 
-            -- Título principal
             titulo <- UI.h1 #+ [string "🎰 EL CASSINO 🎰"]
                            # set UI.style 
                                [ ("color", "#ffd700")
@@ -60,9 +54,7 @@ menuUI window jogadorId = do
                                , ("text-shadow", "2px 2px 4px rgba(0,0,0,0.5)")
                                ]
 
-            -- Função para criar cards dos jogos
             let criarCard nome imagemSrc acao = do
-                    -- Imagem do jogo
                     imagem <- UI.img # set UI.src imagemSrc
                                     # set UI.style 
                                         [ ("width", "160px")
@@ -71,7 +63,6 @@ menuUI window jogadorId = do
                                         , ("border-radius", "10px")
                                         ]
                     
-                    -- Card principal (só a imagem)
                     card <- UI.div #+ [element imagem]
                                   # set UI.style 
                                       [ ("background", "linear-gradient(145deg, #2a2a5a, #1a1a3a)")
@@ -87,7 +78,6 @@ menuUI window jogadorId = do
                                       , ("justify-content", "center")
                                       ]
                     
-                    -- Texto abaixo do card
                     texto <- UI.div #+ [string nome]
                                    # set UI.style 
                                        [ ("font-size", "14px")
@@ -99,27 +89,28 @@ menuUI window jogadorId = do
                                        , ("letter-spacing", "1px")
                                        ]
                     
-                    -- Container do card + texto
                     container <- UI.div #+ [element card, element texto]
                                        # set UI.style [("display", "flex"), ("flex-direction", "column"), ("align-items", "center")]
                     
                     void $ on UI.click card acao
                     return container
 
-            -- Criação dos cards dos jogos
             cardBaccarat <- criarCard "BACCARAT" "static/baccarat.png" $ \_ -> liftIO $ putStrLn "Ir para Baccarat"
             
             cardBlackjack <- criarCard "BLACKJACK" "static/blackjack.png" $ \_ -> do
                 void $ element body # set UI.children []
                 blackjackUI window
+
             cardCacaniquel <- criarCard "CAÇA-NÍQUEL" "static/cacaniquel.png" $ \_ -> do
                 void $ element body # set UI.children []
                 cacaniquelUI window jogadorId (menuUI window jogadorId)
 
-            cardCaixaSurpresa <- criarCard "CAIXA SURPRESA" "static/caixasurpresa.png" $ \_ -> liftIO $ putStrLn "Ir para Caixa Surpresa"
+            cardCaixaSurpresa <- criarCard "CAIXA SURPRESA" "static/caixasurpresa.png" $ \_ -> do
+                void $ element body # set UI.children []
+                caixaSurpresaUI window jogadorId (menuUI window jogadorId)
+
             cardRoleta <- criarCard "ROLETA" "static/roleta.png" $ \_ -> liftIO $ putStrLn "Ir para Roleta"
 
-            -- Container dos jogos (todos na mesma linha)
             containerJogos <- UI.div #+ [ element cardBaccarat
                                         , element cardBlackjack
                                         , element cardCacaniquel
@@ -135,7 +126,6 @@ menuUI window jogadorId = do
                                         , ("flex-wrap", "nowrap")
                                         ]
 
-            -- Botão do Ranking
             btnRanking <- UI.button #+ [string "🏆 RANKING"]
                                   # set UI.style 
                                       [ ("background", "linear-gradient(145deg, #ffd700, #ffb700)")
@@ -156,7 +146,6 @@ menuUI window jogadorId = do
                 void $ element body # set UI.children []
                 rankingUI window jogadorId (menuUI window jogadorId)
 
-            -- Container para centralizar o botão
             containerBotao <- UI.div #+ [element btnRanking]
                                     # set UI.style 
                                         [ ("display", "flex")
@@ -164,25 +153,8 @@ menuUI window jogadorId = do
                                         , ("margin", "20px 0")
                                         ]
 
-            -- Adiciona tudo ao body
             void $ element body #+ [ element navBar
                                    , element titulo
                                    , element containerJogos
                                    , element containerBotao
                                    ]
-            
-        Nothing -> do
-            -- Mensagem de erro simples e bonita
-            erro <- UI.div #+ [string "⚠️ Erro: Jogador não encontrado. Por favor, volte à tela inicial."]
-                          # set UI.style 
-                              [ ("background", "rgba(139, 0, 0, 0.8)")
-                              , ("color", "#ffaaaa")
-                              , ("padding", "30px")
-                              , ("border-radius", "10px")
-                              , ("border", "2px solid #ff6b6b")
-                              , ("font-size", "1.3em")
-                              , ("margin", "50px auto")
-                              , ("max-width", "500px")
-                              ]
-            
-            void $ element body #+ [element erro]
