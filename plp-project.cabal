@@ -27,8 +27,11 @@ executable plp-project-exe
                        random >= 1.2 && < 1.3,
                        threepenny-gui >= 0.9.4
   default-language:    Haskell2010
-  other-modules: Jogos.CaixaSurpresa,
-                 EstadoGlobal, 
-                 Jogos.CacaNiquel,
-                 Interface.MainUI,
-                 Interface.MenuUI
+  other-modules:  EstadoGlobal
+                  , Interface.BlackjackUI
+                  , Interface.CacaNiquelUI
+                  , Interface.RankingUI
+                  , Interface.MenuUI
+                  , Jogos.Blackjack
+                  , Jogos.CacaNiquel
+                  , Jogos.CaixaSurpresa

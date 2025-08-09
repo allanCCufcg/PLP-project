@@ -11,6 +11,7 @@ module EstadoGlobal (
     carregarDados,
     salvarDados,
     salvarDadosSeguro,
+    inicializarSistema,
     getGlobalData,
     updateGlobalData,
     adicionarJogador,
@@ -19,6 +20,7 @@ module EstadoGlobal (
     removerSaldo,
     mostrarSaldo,
     mostrarRanking,
+    obterRankingTop10,
     listarJogadores,
     registrarJogada,
     resetarDados,
@@ -30,11 +32,12 @@ import Data.Aeson (ToJSON, FromJSON, encode, decode)
 import qualified Data.ByteString.Lazy as B
 import Data.List (sortBy)
 import Data.Ord (comparing)
-import System.Directory (doesFileExist)
+import System.Directory (doesFileExist, createDirectoryIfMissing)
 import System.IO.Unsafe (unsafePerformIO)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Control.Exception (try, SomeException)
 import System.Random (randomRIO)
+-- import System.FilePath (takeDirectory) -- Removido para evitar dependência
 
 -- Tipos de dados
 type PlayerID = Int
@@ -72,42 +75,94 @@ instance FromJSON DadosGlobais
 arquivoDados :: FilePath
 arquivoDados = "data/dados_jogo.json"
 
--- Variável global em memória
+-- Diretório onde ficam os dados
+diretorioDados :: FilePath
+diretorioDados = "data"
+
+-- Dados padrão para inicialização (apenas se arquivo não existir)
+dadosIniciais :: DadosGlobais
+dadosIniciais = DadosGlobais {
+    jogadores = [],
+    configs = Configuracoes {
+        saldoInicial = 100,
+        apostaMinima = 5
+    }
+}
+
+-- CHAVE DA SOLUÇÃO: Sempre carregar do arquivo se existir
 {-# NOINLINE globalData #-}
 globalData :: IORef DadosGlobais
 globalData = unsafePerformIO $ do
+    putStrLn "[INIT] Inicializando estado global..."
+    
+    -- Cria diretório se necessário
+    createDirectoryIfMissing True diretorioDados
+    
+    -- Verifica se arquivo existe
     exists <- doesFileExist arquivoDados
-    if exists then
-        carregarDados >>= newIORef
-    else
-        newIORef DadosGlobais {
-            jogadores = [],
-            configs = Configuracoes {
-                saldoInicial = 100,
-                apostaMinima = 5
-            }
-        }
+    if exists then do
+        putStrLn "[LOAD] Arquivo JSON encontrado, carregando dados existentes..."
+        resultado <- try (B.readFile arquivoDados) :: IO (Either SomeException B.ByteString)
+        case resultado of
+            Left err -> do
+                putStrLn $ "[ERROR] Erro ao ler arquivo: " ++ show err
+                putStrLn "[NEW] Criando com dados padrão..."
+                newIORef dadosIniciais
+            Right conteudo -> 
+                case decode conteudo of
+                    Just dados -> do
+                        putStrLn $ "[OK] Dados carregados: " ++ show (length $ jogadores dados) ++ " jogadores encontrados"
+                        putStrLn "[READY] Sistema pronto com dados existentes!"
+                        newIORef dados
+                    Nothing -> do
+                        putStrLn "[WARN] JSON corrompido, criando backup e usando dados padrão..."
+                        -- Fazer backup do arquivo corrompido
+                        _ <- try (B.writeFile (arquivoDados ++ ".backup") conteudo) :: IO (Either SomeException ())
+                        newIORef dadosIniciais
+    else do
+        putStrLn "[NEW] Arquivo não existe, criando novo..."
+        let ref = newIORef dadosIniciais
+        -- Salva imediatamente o arquivo inicial
+        B.writeFile arquivoDados (encode dadosIniciais)
+        putStrLn "[SAVE] Arquivo inicial criado"
+        ref
 
 -- ========== FUNÇÕES DE PERSISTÊNCIA ========== --
+
+-- Função de inicialização (opcional, mas recomendada)
+inicializarSistema :: IO ()
+inicializarSistema = do
+    putStrLn "[CASINO] Sistema El Cassino inicializado!"
+    dados <- readIORef globalData
+    putStrLn $ "[PLAYERS] Jogadores ativos: " ++ show (length $ jogadores dados)
+    return ()
 
 carregarDados :: IO DadosGlobais
 carregarDados = do
     conteudo <- B.readFile arquivoDados
     case decode conteudo of
         Just dados -> return dados
-        Nothing -> error "Erro na leitura dos dados"
+        Nothing -> do
+            putStrLn "[ERROR] Erro na decodificação, usando dados padrão"
+            return dadosIniciais
 
+-- Salva dados de forma segura (SEMPRE salva no arquivo)
 salvarDados :: IO ()
 salvarDados = do
     dados <- readIORef globalData
+    createDirectoryIfMissing True diretorioDados
     B.writeFile arquivoDados (encode dados)
 
 salvarDadosSeguro :: IO ()
 salvarDadosSeguro = do
     result <- try salvarDados :: IO (Either SomeException ())
     case result of
-        Left err -> putStrLn $ "Erro ao salvar: " ++ show err
-        Right _ -> putStrLn "Dados salvos com sucesso!"
+        Left err -> do
+            putStrLn $ "[ERROR] ERRO CRÍTICO ao salvar: " ++ show err
+            putStrLn "[WARN] Os dados podem ser perdidos!"
+        Right _ -> do
+            dados <- readIORef globalData
+            putStrLn $ "[SAVE] Dados persistidos: " ++ show (length $ jogadores dados) ++ " jogadores"
 
 -- ========== FUNÇÕES DE GERENCIAMENTO ========== --
 
@@ -116,8 +171,9 @@ getGlobalData = readIORef globalData
 
 updateGlobalData :: DadosGlobais -> IO ()
 updateGlobalData novosDados = do
+    putStrLn "[UPDATE] Atualizando dados globais..."
     writeIORef globalData novosDados
-    salvarDadosSeguro
+    salvarDadosSeguro -- CRÍTICO: SEMPRE salva após qualquer mudança
 
 -- Gera um PlayerID aleatório único (4 dígitos)
 gerarIDUnico :: IO PlayerID
@@ -132,6 +188,7 @@ gerarIDUnico = do
 -- Adiciona novo jogador com ID aleatório
 adicionarJogador :: String -> IO PlayerID
 adicionarJogador nomeJogador = do
+    putStrLn $ "[NEW PLAYER] Criando jogador: " ++ nomeJogador
     dados <- getGlobalData
     novoID <- gerarIDUnico
     let saldoInicialFloat = fromIntegral (saldoInicial $ configs dados)
@@ -143,26 +200,28 @@ adicionarJogador nomeJogador = do
             historico = [],
             saldo = saldoInicialFloat
         }
-    updateGlobalData dados {
-        jogadores = novoJogador : jogadores dados
-    }
+    let dadosAtualizados = dados { jogadores = novoJogador : jogadores dados }
+    updateGlobalData dadosAtualizados
+    putStrLn $ "[OK] Jogador criado: " ++ nomeJogador ++ " (ID: " ++ show novoID ++ ")"
     return novoID
 
 atualizarStats :: PlayerID -> String -> Int -> Float -> IO ()
 atualizarStats pid jogo valor ganho = do
+    putStrLn $ "[STATS] Atualizando stats do jogador " ++ show pid
     dados <- getGlobalData
     let jogadoresAtualizados = map (\j ->
             if playerID j == pid
             then j {
                 totalApostas = totalApostas j + 1,
                 totalGanho   = totalGanho j + ganho,
-                historico    = (jogo, valor) : historico j,
+                historico    = (jogo, valor) : take 19 (historico j),
                 saldo        = max 0 (saldo j - fromIntegral valor + ganho)
             }
             else j) (jogadores dados)
-    updateGlobalData dados { jogadores = jogadoresAtualizados }
+    let dadosAtualizados = dados { jogadores = jogadoresAtualizados }
+    updateGlobalData dadosAtualizados
 
--- Nova função para buscar jogador pelo ID
+-- Buscar jogador pelo ID
 buscarJogadorPorID :: PlayerID -> IO (Maybe Jogador)
 buscarJogadorPorID pid = do
     dados <- getGlobalData
@@ -170,69 +229,67 @@ buscarJogadorPorID pid = do
         []    -> Nothing
         (j:_) -> Just j
 
+-- Obter ranking dos 10 melhores jogadores
+obterRankingTop10 :: IO [Jogador]
+obterRankingTop10 = do
+    putStrLn "[RANKING] Gerando ranking Top 10..."
+    dados <- getGlobalData
+    let ranking = take 10 $ sortBy (comparing (negate . totalGanho)) (jogadores dados)
+    putStrLn $ "[TOP10] Ranking: " ++ show (length ranking) ++ " jogadores no top"
+    return ranking
+
 adicionarSaldo :: PlayerID -> Float -> IO ()
 adicionarSaldo pid valor = do
+    putStrLn $ "[MONEY] Adicionando R$ " ++ show valor ++ " ao jogador " ++ show pid
     dados <- getGlobalData
     let jogadoresAtualizados = map (\j ->
             if playerID j == pid
             then j { saldo = saldo j + valor }
             else j) (jogadores dados)
-    updateGlobalData dados { jogadores = jogadoresAtualizados }
-    putStrLn $ "Saldo de " ++ show valor ++ " adicionado ao jogador " ++ show pid
+    let dadosAtualizados = dados { jogadores = jogadoresAtualizados }
+    updateGlobalData dadosAtualizados
 
 removerSaldo :: PlayerID -> Float -> IO ()
 removerSaldo pid valor = do
+    putStrLn $ "[MONEY] Removendo R$ " ++ show valor ++ " do jogador " ++ show pid
     dados <- getGlobalData
     let jogadoresAtualizados = map (\j ->
             if playerID j == pid
             then j { saldo = max 0 (saldo j - valor) }
             else j) (jogadores dados)
-    updateGlobalData dados { jogadores = jogadoresAtualizados }
-    putStrLn $ "Saldo de " ++ show valor ++ " removido do jogador " ++ show pid
+    let dadosAtualizados = dados { jogadores = jogadoresAtualizados }
+    updateGlobalData dadosAtualizados
 
 mostrarSaldo :: PlayerID -> IO ()
 mostrarSaldo pid = do
     dados <- getGlobalData
     case filter (\j -> playerID j == pid) (jogadores dados) of
-        [] -> putStrLn "Jogador não encontrado."
-        (j:_) -> putStrLn $ "Saldo atual do jogador " ++ nome j ++ ": R$ " ++ show (saldo j)
+        [] -> putStrLn "[ERROR] Jogador não encontrado."
+        (j:_) -> putStrLn $ "[BALANCE] Saldo do jogador " ++ nome j ++ ": R$ " ++ show (saldo j)
 
 mostrarRanking :: IO ()
 mostrarRanking = do
     dados <- getGlobalData
     let ranking = sortBy (comparing (negate . totalGanho)) (jogadores dados)
-    putStrLn "Ranking de jogadores por total ganho:"
-    mapM_ (\j -> putStrLn $ nome j ++ ": R$ " ++ show (totalGanho j)) ranking
+    putStrLn "[RANKING] === RANKING GERAL ==="
+    mapM_ (\(pos, j) -> putStrLn $ show pos ++ "º " ++ nome j ++ ": R$ " ++ show (totalGanho j)) 
+          (zip [1..] ranking)
 
 listarJogadores :: IO ()
 listarJogadores = do
     dados <- getGlobalData
-    putStrLn "Jogadores cadastrados:"
-    mapM_ (\j -> putStrLn $ show (playerID j) ++ ": " ++ nome j) (jogadores dados)
+    putStrLn "[PLAYERS] === JOGADORES CADASTRADOS ==="
+    mapM_ (\j -> putStrLn $ "ID " ++ show (playerID j) ++ ": " ++ nome j ++ " (Saldo: R$ " ++ show (saldo j) ++ ")") 
+          (jogadores dados)
 
 registrarJogada :: PlayerID -> String -> Int -> Float -> IO ()
 registrarJogada pid jogo valor ganho = do
+    putStrLn $ "[GAME] Registrando jogada: " ++ jogo ++ " - Jogador " ++ show pid
     atualizarStats pid jogo valor ganho
-    dados <- getGlobalData
-    case filter (\j -> playerID j == pid) (jogadores dados) of
-        [] -> putStrLn "Jogador não encontrado."
-        (j:_) -> do
-            let performance = if totalApostas j > 0
-                              then totalGanho j / fromIntegral (totalApostas j)
-                              else 0
-            putStrLn $ "Estatísticas atualizadas - Performance média: " ++ show performance ++ "%"
-            putStrLn $ "Novo saldo: R$ " ++ show (saldo j)
-            putStrLn $ "Histórico: " ++ show (historico j)
 
 resetarDados :: IO ()
 resetarDados = do
-    let dadosIniciais = DadosGlobais {
-            jogadores = [],
-            configs = Configuracoes {
-                saldoInicial = 100,
-                apostaMinima = 5
-            }
-        }
-    writeIORef globalData dadosIniciais
-    B.writeFile arquivoDados (encode dadosIniciais)
-    putStrLn "Dados resetados para o estado inicial!"
+    putStrLn "[RESET] RESETANDO TODOS OS DADOS..."
+    --writeIORef globalData dadosIniciais
+    salvarDadosSeguro
+    putStrLn "[RESET] Dados resetados para o estado inicial!"

@@ -6,6 +6,7 @@ import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 import Interface.CacaNiquelUI (cacaniquelUI)
 import Interface.BlackjackUI (blackjackUI)
+import Interface.RankingUI (rankingUI)
 import EstadoGlobal (buscarJogadorPorID, Jogador(..))
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
@@ -107,12 +108,14 @@ menuUI window jogadorId = do
 
             -- Criação dos cards dos jogos
             cardBaccarat <- criarCard "BACCARAT" "static/baccarat.png" $ \_ -> liftIO $ putStrLn "Ir para Baccarat"
+            
             cardBlackjack <- criarCard "BLACKJACK" "static/blackjack.png" $ \_ -> do
                 void $ element body # set UI.children []
                 blackjackUI window
             cardCacaniquel <- criarCard "CAÇA-NÍQUEL" "static/cacaniquel.png" $ \_ -> do
                 void $ element body # set UI.children []
                 cacaniquelUI window jogadorId (menuUI window jogadorId)
+
             cardCaixaSurpresa <- criarCard "CAIXA SURPRESA" "static/caixasurpresa.png" $ \_ -> liftIO $ putStrLn "Ir para Caixa Surpresa"
             cardRoleta <- criarCard "ROLETA" "static/roleta.png" $ \_ -> liftIO $ putStrLn "Ir para Roleta"
 
@@ -132,10 +135,40 @@ menuUI window jogadorId = do
                                         , ("flex-wrap", "nowrap")
                                         ]
 
+            -- Botão do Ranking
+            btnRanking <- UI.button #+ [string "🏆 RANKING"]
+                                  # set UI.style 
+                                      [ ("background", "linear-gradient(145deg, #ffd700, #ffb700)")
+                                      , ("color", "#1a1a2e")
+                                      , ("border", "none")
+                                      , ("border-radius", "25px")
+                                      , ("padding", "15px 40px")
+                                      , ("cursor", "pointer")
+                                      , ("font-size", "18px")
+                                      , ("font-weight", "bold")
+                                      , ("margin", "30px auto")
+                                      , ("box-shadow", "0 6px 12px rgba(255, 215, 0, 0.3)")
+                                      , ("transition", "all 0.3s ease")
+                                      , ("text-shadow", "1px 1px 2px rgba(0,0,0,0.2)")
+                                      ]
+
+            void $ on UI.click btnRanking $ \_ -> do
+                void $ element body # set UI.children []
+                rankingUI window jogadorId (menuUI window jogadorId)
+
+            -- Container para centralizar o botão
+            containerBotao <- UI.div #+ [element btnRanking]
+                                    # set UI.style 
+                                        [ ("display", "flex")
+                                        , ("justify-content", "center")
+                                        , ("margin", "20px 0")
+                                        ]
+
             -- Adiciona tudo ao body
             void $ element body #+ [ element navBar
                                    , element titulo
                                    , element containerJogos
+                                   , element containerBotao
                                    ]
             
         Nothing -> do
