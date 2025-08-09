@@ -21,7 +21,8 @@ module EstadoGlobal (
     mostrarRanking,
     listarJogadores,
     registrarJogada,
-    resetarDados
+    resetarDados,
+    buscarJogadorPorID
 ) where
 
 import GHC.Generics (Generic)
@@ -33,6 +34,7 @@ import System.Directory (doesFileExist)
 import System.IO.Unsafe (unsafePerformIO)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Control.Exception (try, SomeException)
+import System.Random (randomRIO)
 
 -- Tipos de dados
 type PlayerID = Int
@@ -60,14 +62,13 @@ instance FromJSON Configuracoes
 
 data DadosGlobais = DadosGlobais {
     jogadores   :: [Jogador],
-    proximoID   :: PlayerID,
     configs     :: Configuracoes
 } deriving (Show, Generic)
 
 instance ToJSON DadosGlobais
 instance FromJSON DadosGlobais
 
--- Caminho do arquivo de persistência ajustado para a pasta 'data'
+-- Caminho do arquivo de persistência
 arquivoDados :: FilePath
 arquivoDados = "data/dados_jogo.json"
 
@@ -81,7 +82,6 @@ globalData = unsafePerformIO $ do
     else
         newIORef DadosGlobais {
             jogadores = [],
-            proximoID = 1,
             configs = Configuracoes {
                 saldoInicial = 100,
                 apostaMinima = 5
@@ -119,10 +119,21 @@ updateGlobalData novosDados = do
     writeIORef globalData novosDados
     salvarDadosSeguro
 
+-- Gera um PlayerID aleatório único (4 dígitos)
+gerarIDUnico :: IO PlayerID
+gerarIDUnico = do
+    dados <- getGlobalData
+    let idsExistentes = map playerID (jogadores dados)
+    novoID <- randomRIO (1000, 9999)
+    if novoID `elem` idsExistentes
+        then gerarIDUnico
+        else return novoID
+
+-- Adiciona novo jogador com ID aleatório
 adicionarJogador :: String -> IO PlayerID
 adicionarJogador nomeJogador = do
     dados <- getGlobalData
-    let novoID = proximoID dados
+    novoID <- gerarIDUnico
     let saldoInicialFloat = fromIntegral (saldoInicial $ configs dados)
     let novoJogador = Jogador {
             playerID = novoID,
@@ -133,8 +144,7 @@ adicionarJogador nomeJogador = do
             saldo = saldoInicialFloat
         }
     updateGlobalData dados {
-        jogadores = novoJogador : jogadores dados,
-        proximoID = novoID + 1
+        jogadores = novoJogador : jogadores dados
     }
     return novoID
 
@@ -152,7 +162,14 @@ atualizarStats pid jogo valor ganho = do
             else j) (jogadores dados)
     updateGlobalData dados { jogadores = jogadoresAtualizados }
 
--- Adiciona saldo ao jogador
+-- Nova função para buscar jogador pelo ID
+buscarJogadorPorID :: PlayerID -> IO (Maybe Jogador)
+buscarJogadorPorID pid = do
+    dados <- getGlobalData
+    return $ case filter (\j -> playerID j == pid) (jogadores dados) of
+        []    -> Nothing
+        (j:_) -> Just j
+
 adicionarSaldo :: PlayerID -> Float -> IO ()
 adicionarSaldo pid valor = do
     dados <- getGlobalData
@@ -163,7 +180,6 @@ adicionarSaldo pid valor = do
     updateGlobalData dados { jogadores = jogadoresAtualizados }
     putStrLn $ "Saldo de " ++ show valor ++ " adicionado ao jogador " ++ show pid
 
--- Remove saldo do jogador
 removerSaldo :: PlayerID -> Float -> IO ()
 removerSaldo pid valor = do
     dados <- getGlobalData
@@ -174,7 +190,6 @@ removerSaldo pid valor = do
     updateGlobalData dados { jogadores = jogadoresAtualizados }
     putStrLn $ "Saldo de " ++ show valor ++ " removido do jogador " ++ show pid
 
--- Mostrar saldo de um jogador
 mostrarSaldo :: PlayerID -> IO ()
 mostrarSaldo pid = do
     dados <- getGlobalData
@@ -182,7 +197,6 @@ mostrarSaldo pid = do
         [] -> putStrLn "Jogador não encontrado."
         (j:_) -> putStrLn $ "Saldo atual do jogador " ++ nome j ++ ": R$ " ++ show (saldo j)
 
--- Mostrar ranking de jogadores
 mostrarRanking :: IO ()
 mostrarRanking = do
     dados <- getGlobalData
@@ -190,14 +204,11 @@ mostrarRanking = do
     putStrLn "Ranking de jogadores por total ganho:"
     mapM_ (\j -> putStrLn $ nome j ++ ": R$ " ++ show (totalGanho j)) ranking
 
--- Listar jogadores (ID e nome)
 listarJogadores :: IO ()
 listarJogadores = do
     dados <- getGlobalData
     putStrLn "Jogadores cadastrados:"
     mapM_ (\j -> putStrLn $ show (playerID j) ++ ": " ++ nome j) (jogadores dados)
-
--- ========== INTERFACE PARA OS JOGOS ========== --
 
 registrarJogada :: PlayerID -> String -> Int -> Float -> IO ()
 registrarJogada pid jogo valor ganho = do
@@ -217,7 +228,6 @@ resetarDados :: IO ()
 resetarDados = do
     let dadosIniciais = DadosGlobais {
             jogadores = [],
-            proximoID = 1,
             configs = Configuracoes {
                 saldoInicial = 100,
                 apostaMinima = 5
