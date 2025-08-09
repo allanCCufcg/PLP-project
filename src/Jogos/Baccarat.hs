@@ -18,7 +18,7 @@ custoBaccarat = 10
 
 multiplicadorPremio :: Aposta -> Float
 multiplicadorPremio Empate = 8.0
-multiplicadorPremio _      = 2.0
+multiplicadorPremio _      = 1.0
 
 sorteiaCarta :: IO Int
 sorteiaCarta = randomRIO (0, 9)
@@ -70,4 +70,5 @@ jogarBaccarat pid aposta valorAposta = do
               then putStrLn $ "Parabens! Voce ganhou " ++ show premio ++ " pontos!"
               else putStrLn "Que pena! Voce nao ganhou"
                     
+
 
