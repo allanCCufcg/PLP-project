@@ -8,38 +8,93 @@ import System.Random (randomRIO)
 import Control.Monad (void, when)
 import Control.Monad.IO.Class (liftIO)
 
--- Sorteia uma carta (0 a 9)
-sorteiaCarta :: IO Int
-sorteiaCarta = randomRIO (0, 9)
+-- Tipos de valor das cartas
+data ValorCarta = As | Numero Int | Valete | Dama | Rei
+data Carta = Carta { valor :: ValorCarta, naipe :: String }
 
--- Sorteia as mãos do jogador e banco
-sortearMaos :: IO ([Int], [Int])
-sortearMaos = do
-    j1 <- sorteiaCarta
-    j2 <- sorteiaCarta
-    b1 <- sorteiaCarta
-    b2 <- sorteiaCarta
-    return ([j1, j2], [b1, b2])
+-- Lista de naipes
+naipes :: [String]
+naipes = ["♠", "♥", "♦", "♣"]
 
--- Função para criar visual de cartas MELHORADO
-cartaView :: Int -> UI Element
-cartaView n = UI.div #+ [string (show n)]
-    # set UI.style
+-- Gera uma carta aleatória
+gerarCarta :: IO Carta
+gerarCarta = do
+    valorIdx <- randomRIO (0, 12)
+    naipeIdx <- randomRIO (0, 3)
+    let valorCarta = case valorIdx of
+            0 -> As
+            n | n >= 1 && n <= 9 -> Numero n
+            10 -> Valete
+            11 -> Dama
+            12 -> Rei
+            _ -> As
+    let naipeCarta = naipes !! naipeIdx
+    return $ Carta valorCarta naipeCarta
+
+-- Converte uma carta para seu valor numérico no Baccarat (0-9)
+valorBaccarat :: Carta -> Int
+valorBaccarat carta = case valor carta of
+    As -> 1
+    Numero n -> n
+    Valete -> 0
+    Dama -> 0
+    Rei -> 0
+
+-- Sorteia duas cartas para uma mão
+sortearMao :: IO ([Carta], Int)
+sortearMao = do
+    c1 <- gerarCarta
+    c2 <- gerarCarta
+    let cartas = [c1, c2]
+    let pontos = sum (map valorBaccarat cartas) `mod` 10
+    return (cartas, pontos)
+
+-- Função para criar visual de cartas usando o mesmo estilo do Blackjack
+cartaVisual :: Carta -> UI Element
+cartaVisual carta = do
+    let v = valor carta
+        (valorStr, _) = case v of
+            As         -> ("A", 0)
+            Numero n   -> (show n, n)
+            Valete     -> ("J", 1)
+            Dama       -> ("Q", 2)
+            Rei        -> ("K", 3)
+        naipeCarta = naipe carta
+        cor = if naipeCarta == "♥" || naipeCarta == "♦" then "#e53935" else "#222"
+    UI.div # set UI.style
         [ ("display", "inline-block")
         , ("width", "50px")
         , ("height", "75px")
         , ("margin", "0 8px")
-        , ("background", "linear-gradient(145deg, #ffffff, #f8f8f8)")
-        , ("border", "3px solid #ffd700")
-        , ("border-radius", "12px")
-        , ("font-size", "2.2em")
-        , ("font-weight", "bold")
-        , ("color", "#8b0000")
-        , ("text-align", "center")
-        , ("line-height", "75px")
+        , ("background", "white")
+        , ("border", "2px solid #333")
+        , ("border-radius", "8px")
         , ("box-shadow", "0 4px 15px rgba(0,0,0,0.3)")
+        , ("font-size", "1.1em")
+        , ("color", cor)
         , ("position", "relative")
         ]
+        #+ [ UI.span # set UI.text naipeCarta
+                     # set UI.style [ ("position","absolute")
+                                   , ("top","4px")
+                                   , ("left","6px")
+                                   , ("font-size","1.3em")
+                                   , ("font-weight","bold")
+                                   ]
+           , UI.span # set UI.text valorStr
+                     # set UI.style [ ("position","absolute")
+                                   , ("top","50%")
+                                   , ("left","50%")
+                                   , ("transform","translate(-50%,-50%)")
+                                   , ("font-size","1.8em")
+                                   , ("font-weight","bold")
+                                   ]
+           ]
+
+-- Função para criar visual de uma mão de cartas
+cartasVisuais :: [Carta] -> UI Element
+cartasVisuais cs = UI.div #+ map cartaVisual cs
+    # set UI.style [("display", "flex"), ("justify-content", "center"), ("flex-wrap", "wrap")]
 
 baccaratUI :: Window -> PlayerID -> UI () -> UI ()
 baccaratUI window playerId voltarAoMenu = do
@@ -126,6 +181,21 @@ baccaratUI window playerId voltarAoMenu = do
                     , ("box-shadow", "0 4px 10px rgba(0,0,0,0.3)")
                     ]
 
+            -- Botão para explicar as regras
+            btnRegras <- UI.button #+ [string "❓ COMO JOGAR"]
+                # set UI.style
+                    [ ("padding", "8px 16px")
+                    , ("font-size", "14px")
+                    , ("font-weight", "bold")
+                    , ("background", "linear-gradient(145deg, #4169e1, #1e3a8a)")
+                    , ("color", "#ffffff")
+                    , ("border", "2px solid #6495ed")
+                    , ("border-radius", "8px")
+                    , ("cursor", "pointer")
+                    , ("margin", "10px")
+                    , ("box-shadow", "0 4px 10px rgba(0,0,0,0.3)")
+                    ]
+
             -- Display do saldo elegante
             saldoDisplay <- UI.p # set UI.text ("💰 Saldo: R$ " ++ show (saldo jogador))
                 # set UI.style
@@ -150,6 +220,104 @@ baccaratUI window playerId voltarAoMenu = do
                 , ("min-width", "600px")
                 , ("box-shadow", "0 8px 30px rgba(0,0,0,0.6)")
                 ]
+
+            -- Card explicativo das regras (inicialmente oculto)
+            regrasCard <- UI.div # set UI.style
+                [ ("position", "fixed")
+                , ("top", "50%")
+                , ("left", "50%")
+                , ("transform", "translate(-50%, -50%)")
+                , ("background", "linear-gradient(145deg, #2d3748, #1a202c)")
+                , ("border", "3px solid #ffd700")
+                , ("border-radius", "15px")
+                , ("padding", "25px")
+                , ("max-width", "700px")
+                , ("max-height", "80vh")
+                , ("overflow-y", "auto")
+                , ("z-index", "2000")
+                , ("color", "#ffffff")
+                , ("box-shadow", "0 10px 40px rgba(0,0,0,0.8)")
+                , ("display", "none")
+                ]
+
+            -- Overlay de fundo escuro (inicialmente oculto)
+            overlay <- UI.div # set UI.style
+                [ ("position", "fixed")
+                , ("top", "0")
+                , ("left", "0")
+                , ("width", "100%")
+                , ("height", "100%")
+                , ("background", "rgba(0,0,0,0.7)")
+                , ("z-index", "1500")
+                , ("display", "none")
+                ]
+
+            -- Conteúdo do card de regras
+            regrasTitle <- UI.h2 #+ [string "🃏 COMO JOGAR BACCARAT 🃏"]
+                # set UI.style
+                    [ ("color", "#ffd700")
+                    , ("text-align", "center")
+                    , ("margin-bottom", "20px")
+                    , ("font-size", "1.8em")
+                    ]
+
+            regrasTexto <- UI.div #+ 
+                [ UI.h3 #+ [string "🎯 OBJETIVO DO JOGO"]
+                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
+                , UI.p #+ [string "O objetivo é apostar na mão que ficará mais próxima de 9 pontos: Jogador, Banco ou Empate."]
+                    # set UI.style [("margin-bottom", "15px"), ("line-height", "1.4")]
+
+                , UI.h3 #+ [string "🃏 VALOR DAS CARTAS"]
+                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
+                , UI.ul #+ 
+                    [ UI.li #+ [string "Ás = 1 ponto"]
+                    , UI.li #+ [string "Cartas 2-9 = valor nominal"]
+                    , UI.li #+ [string "10, J, Q, K = 0 pontos"]
+                    ] # set UI.style [("margin-bottom", "15px"), ("line-height", "1.4")]
+
+                , UI.h3 #+ [string "🎲 COMO FUNCIONA"]
+                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
+                , UI.ul #+ 
+                    [ UI.li #+ [string "Cada mão recebe 2 cartas inicialmente"]
+                    , UI.li #+ [string "A pontuação é a soma das cartas módulo 10 (só o último dígito conta)"]
+                    , UI.li #+ [string "Exemplo: 7 + 8 = 15, mas vale 5 pontos"]
+                    , UI.li #+ [string "A mão mais próxima de 9 vence"]
+                    ] # set UI.style [("margin-bottom", "15px"), ("line-height", "1.4")]
+
+                , UI.h3 #+ [string "💰 TIPOS DE APOSTA"]
+                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
+                , UI.ul #+ 
+                    [ UI.li #+ [string "🎮 JOGADOR: Paga 1:1 (dobra sua aposta)"]
+                    , UI.li #+ [string "🏦 BANCO: Paga 1:1 (dobra sua aposta)"]
+                    , UI.li #+ [string "🤝 EMPATE: Paga 8:1 (multiplica por 8)"]
+                    ] # set UI.style [("margin-bottom", "15px"), ("line-height", "1.4")]
+
+                , UI.h3 #+ [string "💡 DICAS"]
+                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
+                , UI.ul #+ 
+                    [ UI.li #+ [string "Banco tem ligeira vantagem estatística"]
+                    , UI.li #+ [string "Empate paga muito mais, mas é mais difícil"]
+                    , UI.li #+ [string "Aposta mínima: R$ 10"]
+                    ] # set UI.style [("margin-bottom", "20px"), ("line-height", "1.4")]
+                ]
+
+            btnFecharRegras <- UI.button #+ [string "❌ FECHAR"]
+                # set UI.style
+                    [ ("padding", "10px 20px")
+                    , ("font-size", "1.1em")
+                    , ("font-weight", "bold")
+                    , ("background", "linear-gradient(145deg, #dc3545, #c82333)")
+                    , ("color", "#ffffff")
+                    , ("border", "2px solid #dc3545")
+                    , ("border-radius", "8px")
+                    , ("cursor", "pointer")
+                    , ("margin-top", "15px")
+                    , ("display", "block")
+                    , ("margin-left", "auto")
+                    , ("margin-right", "auto")
+                    ]
+
+            void $ element regrasCard #+ [element regrasTitle, element regrasTexto, element btnFecharRegras]
 
             -- Área de resultado
             resultado <- UI.div # set UI.text ""
@@ -241,7 +409,10 @@ baccaratUI window playerId voltarAoMenu = do
 
             void $ element gameContainer #+ [element gameSection]
             
-            headerSection <- UI.div #+ [element title, element btnVoltarMenu]
+            headerSection <- UI.div #+ [element title, 
+                                            UI.div #+ [element btnVoltarMenu, element btnRegras]
+                                                # set UI.style [("display", "flex"), ("gap", "10px"), ("justify-content", "center")]
+                                            ]
                 # set UI.style
                     [ ("display", "flex")
                     , ("flex-direction", "column")
@@ -250,10 +421,23 @@ baccaratUI window playerId voltarAoMenu = do
                     ]
 
             void $ element contentWrapper #+ [element headerSection, element saldoDisplay, element gameContainer]
-            void $ element body #+ [element navBarElem, element contentWrapper]
+            void $ element body #+ [element navBarElem, element contentWrapper, element overlay, element regrasCard]
 
             -- Evento voltar ao menu
             void $ on UI.click btnVoltarMenu $ \_ -> voltarAoMenu
+
+            -- Eventos para o card de regras
+            let mostrarRegras = do
+                    void $ element overlay # set UI.style [("display", "block")]
+                    void $ element regrasCard # set UI.style [("display", "block")]
+                
+                esconderRegras = do
+                    void $ element overlay # set UI.style [("display", "none")]
+                    void $ element regrasCard # set UI.style [("display", "none")]
+
+            void $ on UI.click btnRegras $ \_ -> mostrarRegras
+            void $ on UI.click btnFecharRegras $ \_ -> esconderRegras
+            void $ on UI.click overlay $ \_ -> esconderRegras
 
             -- Funções para mostrar/esconder inputs
             let mostrarInputs = do
@@ -296,10 +480,13 @@ baccaratUI window playerId voltarAoMenu = do
                 else do
                     esconderInputs
                     -- Sorteia cartas e calcula resultado
-                    (maoJogador, maoBanco) <- liftIO sortearMaos
-                    let pontosJ = sum maoJogador `mod` 10
-                        pontosB = sum maoBanco `mod` 10
-                        vencedor = calcularVencedor maoJogador maoBanco
+                    (cartasJogador, pontosJ) <- liftIO sortearMao
+                    (cartasBanco, pontosB) <- liftIO sortearMao
+                    
+                    -- Converte as cartas para o formato esperado pela lógica do Baccarat
+                    let maoJogadorInt = map valorBaccarat cartasJogador
+                        maoBancoInt = map valorBaccarat cartasBanco
+                        vencedor = calcularVencedor maoJogadorInt maoBancoInt
                         ganhou = apostaEscolhida == vencedor
                         premio = if ganhou
                                  then valor * multiplicadorPremio vencedor
@@ -318,26 +505,22 @@ baccaratUI window playerId voltarAoMenu = do
                         Nothing    -> pure ()
 
                     -- Visual das cartas lado a lado MELHORADO
-                    maoJogadorView <- UI.div #+ map cartaView maoJogador
+                    maoJogadorView <- cartasVisuais cartasJogador
                         # set UI.style 
-                            [ ("display", "flex")
-                            , ("flex-direction", "row")
-                            , ("justify-content", "center")
-                            , ("margin-bottom", "12px")
-                            , ("padding", "10px")
+                            [ ("margin-bottom", "12px")
+                            , ("padding", "15px")
                             , ("background", "rgba(0,100,0,0.2)")
                             , ("border-radius", "10px")
+                            , ("border", "2px solid #90ee90")
                             ]
                     
-                    maoBancoView <- UI.div #+ map cartaView maoBanco
+                    maoBancoView <- cartasVisuais cartasBanco
                         # set UI.style 
-                            [ ("display", "flex")
-                            , ("flex-direction", "row")
-                            , ("justify-content", "center")
-                            , ("margin-bottom", "12px")
-                            , ("padding", "10px")
+                            [ ("margin-bottom", "12px")
+                            , ("padding", "15px")
                             , ("background", "rgba(100,0,0,0.2)")
                             , ("border-radius", "10px")
+                            , ("border", "2px solid #ff9090")
                             ]
 
                     -- Títulos das seções
@@ -358,6 +541,7 @@ baccaratUI window playerId voltarAoMenu = do
                         , ("justify-content", "center")
                         , ("gap", "40px")
                         , ("margin", "20px 0")
+                        , ("flex-wrap", "wrap")
                         ]
 
                     jogadorSection <- UI.div #+ [element jogadorTitle, element maoJogadorView, element jogadorPontos]
