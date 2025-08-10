@@ -46,12 +46,12 @@ getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir, getSysconfDir :: 
 
 
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
-bindir     = "E:\\ProjetosHaskell\\PLP-project\\.stack-work\\install\\0d39dc4e\\bin"
-libdir     = "E:\\ProjetosHaskell\\PLP-project\\.stack-work\\install\\0d39dc4e\\lib\\x86_64-windows-ghc-9.10.2-cea6\\plp-project-0.1.0.0-36sUVdhtjL2ApYKDTKuDh3-plp-project-exe"
-dynlibdir  = "E:\\ProjetosHaskell\\PLP-project\\.stack-work\\install\\0d39dc4e\\lib\\x86_64-windows-ghc-9.10.2-cea6"
-datadir    = "E:\\ProjetosHaskell\\PLP-project\\.stack-work\\install\\0d39dc4e\\share\\x86_64-windows-ghc-9.10.2-cea6\\plp-project-0.1.0.0"
-libexecdir = "E:\\ProjetosHaskell\\PLP-project\\.stack-work\\install\\0d39dc4e\\libexec\\x86_64-windows-ghc-9.10.2-cea6\\plp-project-0.1.0.0"
-sysconfdir = "E:\\ProjetosHaskell\\PLP-project\\.stack-work\\install\\0d39dc4e\\etc"
+bindir     = "C:\\Users\\jesse\\OneDrive\\\193rea de Trabalho\\PLP-project\\.stack-work\\install\\f2619c20\\bin"
+libdir     = "C:\\Users\\jesse\\OneDrive\\\193rea de Trabalho\\PLP-project\\.stack-work\\install\\f2619c20\\lib\\x86_64-windows-ghc-9.10.2-cea6\\plp-project-0.1.0.0-36sUVdhtjL2ApYKDTKuDh3-plp-project-exe"
+dynlibdir  = "C:\\Users\\jesse\\OneDrive\\\193rea de Trabalho\\PLP-project\\.stack-work\\install\\f2619c20\\lib\\x86_64-windows-ghc-9.10.2-cea6"
+datadir    = "C:\\Users\\jesse\\OneDrive\\\193rea de Trabalho\\PLP-project\\.stack-work\\install\\f2619c20\\share\\x86_64-windows-ghc-9.10.2-cea6\\plp-project-0.1.0.0"
+libexecdir = "C:\\Users\\jesse\\OneDrive\\\193rea de Trabalho\\PLP-project\\.stack-work\\install\\f2619c20\\libexec\\x86_64-windows-ghc-9.10.2-cea6\\plp-project-0.1.0.0"
+sysconfdir = "C:\\Users\\jesse\\OneDrive\\\193rea de Trabalho\\PLP-project\\.stack-work\\install\\f2619c20\\etc"
 
 getBinDir     = catchIO (getEnv "plp_project_bindir")     (\_ -> return bindir)
 getLibDir     = catchIO (getEnv "plp_project_libdir")     (\_ -> return libdir)

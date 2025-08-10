@@ -8,7 +8,8 @@ import Interface.CacaNiquelUI (cacaniquelUI)
 import Interface.BlackjackUI (blackjackUI)
 import Interface.BaccaratUI (baccaratUI)
 import Interface.RankingUI (rankingUI)
-import Interface.CaixaSurpresaUI (caixaSurpresaUI) 
+import Interface.CaixaSurpresaUI (caixaSurpresaUI)
+import Interface.RoletaUI (roletaUI)  -- NOVO IMPORT
 import EstadoGlobal (buscarJogadorPorID, Jogador(..))
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
@@ -112,7 +113,10 @@ menuUI window jogadorId = do
                 void $ element body # set UI.children []
                 caixaSurpresaUI window jogadorId (menuUI window jogadorId)
 
-            cardRoleta <- criarCard "ROLETA" "static/roleta.png" $ \_ -> liftIO $ putStrLn "Ir para Roleta"
+            -- ALTERAÇÃO AQUI: Agora abre a roletaUI ao invés de só imprimir
+            cardRoleta <- criarCard "ROLETA" "static/roleta.png" $ \_ -> do
+                void $ element body # set UI.children []
+                roletaUI window jogadorId (menuUI window jogadorId)
 
             containerJogos <- UI.div #+ [ element cardBaccarat
                                         , element cardBlackjack
@@ -161,3 +165,4 @@ menuUI window jogadorId = do
                                    , element containerJogos
                                    , element containerBotao
                                    ]
+                                   
