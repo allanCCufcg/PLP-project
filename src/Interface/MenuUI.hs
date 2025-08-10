@@ -102,7 +102,7 @@ menuUI window jogadorId = do
             
             cardBlackjack <- criarCard "BLACKJACK" "static/blackjack.png" $ \_ -> do
                 void $ element body # set UI.children []
-                blackjackUI window
+                blackjackUI window jogadorId (menuUI window jogadorId)
 
             cardCacaniquel <- criarCard "CAÇA-NÍQUEL" "static/cacaniquel.png" $ \_ -> do
                 void $ element body # set UI.children []
