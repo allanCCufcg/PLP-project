@@ -6,9 +6,14 @@ module Jogos.Blackjack
   , sortCarta
   , pontuacao
   , mostrarMao
+  , valorAposta
+  , mostraSaldo
+  , jogarBlackjack
   ) where
 
 import System.Random (randomRIO)
+import EstadoGlobal
+import qualified Data.Map as Map
 
 -- Tipo dos naipes
 data Naipe = Espadas | Copas | Ouros | Paus
@@ -48,10 +53,10 @@ baralho = [Carta v n | v <- todosValores, n <- todosNaipes]
 
 -- Sorteia uma carta e retorna a carta e o baralho sem ela
 sortCarta :: [Carta] -> IO (Carta, [Carta])
-sortCarta baralho = do
-    idx <- randomRIO (0, length baralho - 1)
-    let carta = baralho !! idx
-    let novoBaralho = take idx baralho ++ drop (idx + 1) baralho
+sortCarta b = do
+    idx <- randomRIO (0, length b - 1)
+    let carta = b !! idx
+    let novoBaralho = take idx b ++ drop (idx + 1) b
     return (carta, novoBaralho)
 
 -- Valor da carta
@@ -67,7 +72,7 @@ valorCarta (Carta v _) = case v of
 pontuacao :: [Carta] -> Int
 pontuacao cartas =
     let
-        valoresSemAs = sum [valorCarta c | c <- cartas, valor (c) /= As]
+        valoresSemAs = sum [valorCarta c | c <- cartas, valor c /= As]
         quantidadeAs = length (filter (\c -> valor c == As) cartas)
         ajustarAs total 0 = total
         ajustarAs total n
@@ -75,3 +80,49 @@ pontuacao cartas =
           | otherwise = total
     in
         ajustarAs (valoresSemAs + quantidadeAs) quantidadeAs
+
+-- =========================
+-- Integração com EstadoGlobal
+-- =========================
+
+valorAposta :: Float
+valorAposta = 20 -- aposta fixa por rodada
+
+mostraSaldo :: PlayerID -> IO Float
+mostraSaldo pid = do
+    dados <- getGlobalData
+    let maybeJogador = filter (\j -> playerID j == pid) (jogadores dados)
+    case maybeJogador of
+        (j:_) -> return (saldo j)
+        []    -> return 0
+
+jogarBlackjack :: PlayerID -> IO ()
+jogarBlackjack pid = do
+    saldoAtual <- mostraSaldo pid
+    if saldoAtual < valorAposta
+        then putStrLn "Saldo insuficiente para jogar!"
+        else do
+            -- Distribuir cartas iniciais (2 para jogador e 2 para dealer)
+            (c1, b1) <- sortCarta baralho
+            (c2, b2) <- sortCarta b1
+            let maoJogador = [c1, c2]
+
+            (d1, b3) <- sortCarta b2
+            (d2, _)  <- sortCarta b3
+            let maoDealer = [d1, d2]
+
+            putStrLn $ "Sua mão: " ++ mostrarMao maoJogador ++ " (" ++ show (pontuacao maoJogador) ++ ")"
+            putStrLn $ "Mão do dealer: " ++ mostrarCarta d1 ++ " ??"
+
+            let pontosJ = pontuacao maoJogador
+            let pontosD = pontuacao maoDealer
+
+            -- Aqui lógica mínima: só compara direto (UI pode expandir com hit/stand)
+            if pontosJ > pontosD && pontosJ <= 21 || pontosD > 21
+                then do
+                    let ganho = valorAposta
+                    registrarJogada pid "BlackJack" (round valorAposta) ganho
+                    putStrLn "Você venceu!"
+                else do
+                    registrarJogada pid "BlackJack" (round valorAposta) 0
+                    putStrLn "Você perdeu!"
