@@ -2,21 +2,27 @@ E:\ProjetosHaskell\PLP-project\plp-project.cabal:
   hash: 6fd88af0d691580c89ffb42399f8ed44b6795b1859e347569ba30f4371e6f5c4
 E:\ProjetosHaskell\PLP-project\src\EstadoGlobal.hs:
   hash: 8ce98b1a987e036f80a97aac629a28b0efc36d57c7bb4b749781caf635ef7320
+E:\ProjetosHaskell\PLP-project\src\Interface\BaccaratUI.hs:
+  hash: 69dbb59427ced83b655b7394f870c14e9afd1e01e1824f9e094bc4319bdc18cb
 E:\ProjetosHaskell\PLP-project\src\Interface\BlackjackUI.hs:
   hash: c6656dd640c9c4d3659b86d5b886d417c800dee9f531d52668566e38b6d6be78
 E:\ProjetosHaskell\PLP-project\src\Interface\CacaNiquelUI.hs:
-  hash: 7eda9bc85a685b9d51fa0137e94535b60ac66f05308d4c01873f1dba725bea29
+  hash: 0d82b86963e5e7b60a67e885ef5b43232ed2125d4f55a9bcf948a52bb6ff5020
+E:\ProjetosHaskell\PLP-project\src\Interface\CaixaSurpresaUI.hs:
+  hash: e4c85280489456b5ed14dcf8f67fa0d783b7e402bfc922f728c95f7cbf15babd
 E:\ProjetosHaskell\PLP-project\src\Interface\MainUI.hs:
   hash: 854fbe2edb0d4e72e331eefc39cddc071e20c0798acb5ecf4c14a6c8df3210d8
 E:\ProjetosHaskell\PLP-project\src\Interface\MenuUI.hs:
-  hash: be0b6a34456f123e27e44338aac93fa2059ee596d43be32e06d1186555e81552
+  hash: 1e610b53f1abd06f27a3b78c5cf816f20371a7962b88aae3e7206fd6be336bbd
 E:\ProjetosHaskell\PLP-project\src\Interface\RankingUI.hs:
   hash: c0149fea5fa54be2597075cb5d46422cb734cab5ae56c899c7b5dac0766a894b
+E:\ProjetosHaskell\PLP-project\src\Jogos\Baccarat.hs:
+  hash: c371cfbb1cd465a01264106d6f7c3c7313ba734a28d30b5ca59601347ed50f04
 E:\ProjetosHaskell\PLP-project\src\Jogos\Blackjack.hs:
   hash: 99988c9b0d9c5f8cf65063420b1f32a4800eb5085164718b55bc22d9f657bdf0
 E:\ProjetosHaskell\PLP-project\src\Jogos\CacaNiquel.hs:
   hash: 1a9185dad09186beb19621ad54b48ae59003862f1abb34e7beae5f0a3d8c64fd
 E:\ProjetosHaskell\PLP-project\src\Jogos\CaixaSurpresa.hs:
-  hash: 9ffec5e061eb29969bcb63fe98703f44eabdb0d7c6f2e43eefeec671548d87ab
+  hash: 824bd8152aacedd5fc264efb5c0de824780acc7b0b27cc06c33b64662f182d1f
 E:\ProjetosHaskell\PLP-project\src\Main.hs:
   hash: fb65a5a0305a9587d16f13e0bcb652986a063e54bd4322ea3c38896b9526175f
