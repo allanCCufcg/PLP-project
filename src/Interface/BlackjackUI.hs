@@ -36,6 +36,7 @@ cartaVisual carta = do
         , ("color", cor)
         , ("position", "relative")
         ]
+        # set UI.class_ "carta"
         #+ [ UI.span # set UI.text naipe
                      # set UI.style [ ("position","absolute")
                                    , ("top","2px")
@@ -163,6 +164,20 @@ blackjackUI window playerId voltarAoMenu = do
     body <- getBody window
     void $ element body # set UI.children []
 
+    -- Adicionar CSS para responsividade
+    void $ UI.mkElement "style" # set UI.html 
+        "@media (max-width: 768px) { \
+        \  .responsive-nav { flex-direction: column !important; gap: 8px !important; padding: 12px 15px !important; } \
+        \  .responsive-info { flex-wrap: wrap !important; gap: 8px !important; font-size: 0.85em !important; } \
+        \  .responsive-mesa { padding: 12px !important; margin: 8px 15px !important; } \
+        \  .responsive-botoes { flex-direction: column !important; width: 100% !important; } \
+        \  .responsive-botoes button { width: 100% !important; margin: 2px 0 !important; } \
+        \} \
+        \@media (max-width: 480px) { \
+        \  .responsive-info span { display: block !important; margin: 2px 0 !important; } \
+        \  .carta { width: 32px !important; height: 48px !important; font-size: 0.9em !important; } \
+        \}"
+
     void $ element body # set UI.style
         [ ("background", "linear-gradient(135deg,#0b3d0b 60%,#1b5e20 100%)")
         , ("color", "white")
@@ -170,7 +185,8 @@ blackjackUI window playerId voltarAoMenu = do
         , ("height", "100vh")
         , ("margin", "0")
         , ("padding", "0")
-        , ("overflow", "hidden")
+        , ("overflow-x", "hidden")
+        , ("overflow-y", "auto")
         ]
 
     maybeJogador <- liftIO $ buscarJogadorPorID playerId
@@ -200,12 +216,12 @@ blackjackUI window playerId voltarAoMenu = do
                 , ("font-weight", "bold")
                 ]
 
-        navBarElem <- UI.div #+ [UI.div #+ [element pNome, element pId, element pSaldo] # set UI.style [("display","flex"),("gap","10px"),("align-items","center")], element btnVoltarMenu]
+        navBarElem <- UI.div #+ [UI.div #+ [element pNome, element pId, element pSaldo] # set UI.style [("display","flex"),("gap","10px"),("align-items","center"),("flex-wrap","wrap")] # set UI.class_ "responsive-info", element btnVoltarMenu]
                             # set UI.style
                               [ ("background", "rgba(0,0,0,0.4)")
-                              , ("padding", "10px 30px")
+                              , ("padding", "8px 20px")
                               , ("width", "100%")
-                              , ("height", "40px")
+                              , ("min-height", "50px")
                               , ("display", "flex")
                               , ("justify-content", "space-between")
                               , ("align-items", "center")
@@ -214,57 +230,97 @@ blackjackUI window playerId voltarAoMenu = do
                               , ("left", "0")
                               , ("z-index", "1000")
                               , ("box-shadow", "0 2px 10px rgba(0,0,0,0.7)")
-                              , ("font-size", "1em")
+                              , ("font-size", "0.9em")
                               , ("border-bottom", "2px solid #ffd700")
-                              , ("overflow", "hidden")
                               , ("box-sizing", "border-box")
                               ]
+                            # set UI.class_ "responsive-nav"
 
         contentWrapper <- UI.div # set UI.style
-          [ ("padding-top", "60px")
-          , ("height", "calc(100vh - 60px)")
+          [ ("padding-top", "70px")
+          , ("min-height", "calc(100vh - 70px)")
           , ("display", "flex")
           , ("flex-direction", "column")
           , ("align-items", "center")
           , ("justify-content", "flex-start")
           , ("text-align", "center")
-          , ("overflow", "auto")
+          , ("padding-bottom", "20px")
+          , ("box-sizing", "border-box")
           ]
 
         title <- UI.h1 #+ [string "♠️ Blackjack ♥️"]
                       # set UI.style
-                          [ ("font-size", "2.2em")
-                          , ("margin-bottom", "10px")
+                          [ ("font-size", "clamp(1.8em, 4vw, 2.5em)")
+                          , ("margin", "10px 0")
                           , ("color", "#ffd700")
                           , ("text-shadow", "1px 1px 3px #000")
                           ]
 
-        resultado <- UI.h3 # set UI.style [("margin-bottom", "18px"), ("min-height", "28px")]
+        -- Informação sobre o valor da aposta
+        apostaInfo <- UI.div #+ [string "🎯 Aposta por partida: R$ 10,00"]
+                            # set UI.style
+                                [ ("background", "rgba(255, 215, 0, 0.15)")
+                                , ("border", "2px solid #ffd700")
+                                , ("border-radius", "10px")
+                                , ("padding", "8px 15px")
+                                , ("margin", "10px 20px")
+                                , ("color", "#ffd700")
+                                , ("font-weight", "bold")
+                                , ("font-size", "clamp(0.9em, 2.5vw, 1.2em)")
+                                , ("text-shadow", "1px 1px 2px #000")
+                                , ("box-shadow", "0 2px 8px rgba(255, 215, 0, 0.3)")
+                                , ("max-width", "400px")
+                                , ("width", "90%")
+                                ]
+
+        resultado <- UI.h3 # set UI.style 
+            [ ("margin", "15px 0")
+            , ("min-height", "30px")
+            , ("font-size", "clamp(1em, 3vw, 1.3em)")
+            ]
 
         mesa <- UI.div # set UI.style
             [ ("background", "#145a32")
             , ("border-radius", "16px")
-            , ("padding", "18px 20px")
+            , ("padding", "15px")
             , ("box-shadow", "0 0 18px #0008")
-            , ("margin-bottom", "20px")
-            , ("min-width", "260px")
+            , ("margin", "10px 20px")
+            , ("width", "90%")
+            , ("max-width", "600px")
+            , ("min-width", "280px")
+            , ("box-sizing", "border-box")
             ]
+            # set UI.class_ "responsive-mesa"
 
         jogadorLabel <- UI.h2 #+ [string "Suas cartas"]
-                             # set UI.style [("font-size","1.1em"),("margin-bottom","2px")]
+                             # set UI.style 
+                                 [ ("font-size", "clamp(1em, 2.5vw, 1.2em)")
+                                 , ("margin-bottom", "8px")
+                                 ]
         bancaLabel   <- UI.h2 #+ [string "Cartas visíveis da banca"]
-                             # set UI.style [("font-size","1.1em"),("margin-bottom","2px")]
+                             # set UI.style 
+                                 [ ("font-size", "clamp(1em, 2.5vw, 1.2em)")
+                                 , ("margin-bottom", "8px")
+                                 ]
 
         jogadorCartasDiv <- UI.div
         bancaCartasDiv   <- UI.div
 
-        jogadorPontuacao <- UI.p # set UI.style [("font-size", "1em"), ("margin", "6px 0")]
-        bancaPontuacao   <- UI.p # set UI.style [("font-size", "1em"), ("margin", "6px 0")]
+        jogadorPontuacao <- UI.p # set UI.style 
+            [ ("font-size", "clamp(0.9em, 2.2vw, 1.1em)")
+            , ("margin", "8px 0")
+            , ("font-weight", "bold")
+            ]
+        bancaPontuacao   <- UI.p # set UI.style 
+            [ ("font-size", "clamp(0.9em, 2.2vw, 1.1em)")
+            , ("margin", "8px 0")
+            , ("font-weight", "bold")
+            ]
 
         let botaoVerde txt = UI.button #+ [string txt]
                 # set UI.style
-                    [ ("font-size", "1.1em")
-                    , ("padding", "8px 22px")
+                    [ ("font-size", "clamp(0.9em, 2.2vw, 1.1em)")
+                    , ("padding", "10px 16px")
                     , ("background", "linear-gradient(90deg, #185a18 60%, #0e2e0e 100%)")
                     , ("color", "#c2ffc2")
                     , ("border", "none")
@@ -274,6 +330,8 @@ blackjackUI window playerId voltarAoMenu = do
                     , ("font-weight", "bold")
                     , ("transition", "filter 0.2s, opacity 0.2s")
                     , ("opacity", "1")
+                    , ("min-width", "100px")
+                    , ("white-space", "nowrap")
                     ]
 
         btnNovaPartida <- botaoVerde "Nova Partida"
@@ -283,15 +341,23 @@ blackjackUI window playerId voltarAoMenu = do
         on UI.click btnVoltarMenu $ \_ -> voltarAoMenu
 
         botoesContainer <- UI.div #+ [element btnNovaPartida, element btnPedirCarta, element btnParar]
-            # set UI.style [("display", "flex"), ("gap", "10px"), ("margin-top", "10px")]
+            # set UI.style 
+                [ ("display", "flex")
+                , ("gap", "8px")
+                , ("margin-top", "15px")
+                , ("flex-wrap", "wrap")
+                , ("justify-content", "center")
+                , ("align-items", "center")
+                ]
+            # set UI.class_ "responsive-botoes"
 
         estadoRef <- liftIO $ novaPartida playerId >>= newIORef
 
         let setBtnEnabled btn enabled = do
                 element btn # set UI.enabled enabled
                 element btn # set UI.style
-                    [ ("font-size", "1.1em")
-                    , ("padding", "8px 22px")
+                    [ ("font-size", "clamp(0.9em, 2.2vw, 1.1em)")
+                    , ("padding", "10px 16px")
                     , ("background", "linear-gradient(90deg, #185a18 60%, #0e2e0e 100%)")
                     , ("color", if enabled then "#c2ffc2" else "#888")
                     , ("border", "none")
@@ -301,6 +367,8 @@ blackjackUI window playerId voltarAoMenu = do
                     , ("font-weight", "bold")
                     , ("transition", "filter 0.2s, opacity 0.2s")
                     , ("opacity", if enabled then "1" else "0.6")
+                    , ("min-width", "100px")
+                    , ("white-space", "nowrap")
                     ]
 
         let atualizarUI :: UI ()
@@ -364,7 +432,7 @@ blackjackUI window playerId voltarAoMenu = do
             , element botoesContainer
             ]
 
-        void $ element contentWrapper #+ [element title, element mesa, element resultado]
+        void $ element contentWrapper #+ [element title, element apostaInfo, element mesa, element resultado]
 
         void $ element body #+ [element navBarElem, element contentWrapper]
 

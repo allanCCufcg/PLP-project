@@ -74,6 +74,7 @@ cartaVisual carta = do
         , ("color", cor)
         , ("position", "relative")
         ]
+        # set UI.class_ "baccarat-carta"
         #+ [ UI.span # set UI.text naipeCarta
                      # set UI.style [ ("position","absolute")
                                    , ("top","4px")
@@ -100,6 +101,26 @@ baccaratUI :: Window -> PlayerID -> UI () -> UI ()
 baccaratUI window playerId voltarAoMenu = do
     body <- getBody window
     void $ element body # set UI.children []
+
+    -- Adicionar CSS para responsividade
+    void $ UI.mkElement "style" # set UI.html 
+        "@media (max-width: 768px) { \
+        \  .baccarat-nav { flex-direction: column !important; gap: 8px !important; padding: 12px 15px !important; min-height: 80px !important; } \
+        \  .baccarat-info { flex-wrap: wrap !important; gap: 8px !important; font-size: 0.85em !important; justify-content: center !important; } \
+        \  .baccarat-container { min-width: 90% !important; padding: 15px !important; margin: 10px 15px !important; } \
+        \  .baccarat-inputs { flex-direction: column !important; align-items: center !important; gap: 15px !important; } \
+        \  .baccarat-inputs input, .baccarat-inputs select { min-width: 250px !important; margin: 0 !important; } \
+        \  .baccarat-cartas { flex-direction: column !important; gap: 20px !important; } \
+        \  .baccarat-carta { width: 40px !important; height: 60px !important; margin: 0 4px !important; } \
+        \  .baccarat-titulo { font-size: 2em !important; } \
+        \} \
+        \@media (max-width: 480px) { \
+        \  .baccarat-info span { display: block !important; margin: 2px 0 !important; text-align: center !important; } \
+        \  .baccarat-container { margin: 8px 10px !important; padding: 12px !important; } \
+        \  .baccarat-carta { width: 35px !important; height: 52px !important; font-size: 0.9em !important; } \
+        \  .baccarat-titulo { font-size: 1.8em !important; } \
+        \  .baccarat-inputs input, .baccarat-inputs select { min-width: 200px !important; } \
+        \}"
     
     -- Estilo de fundo luxuoso
     void $ element body # set UI.style
@@ -109,7 +130,8 @@ baccaratUI window playerId voltarAoMenu = do
         , ("height", "100vh")
         , ("margin", "0")
         , ("padding", "0")
-        , ("overflow", "hidden")
+        , ("overflow-x", "hidden")
+        , ("overflow-y", "auto")
         ]
 
     maybeJogador <- liftIO $ buscarJogadorPorID playerId
@@ -121,18 +143,18 @@ baccaratUI window playerId voltarAoMenu = do
                 saldoStr = "💰 $" ++ show (saldo jogador)
             
             pNome <- UI.span #+ [string nomeStr] 
-                            # set UI.style [("margin", "0"), ("color", "#ffd700")]
+                            # set UI.style [("margin", "0"), ("color", "#ffd700"), ("font-weight", "bold")]
             pId <- UI.span #+ [string idStr] 
-                          # set UI.style [("margin", "0"), ("color", "#ffd700")]
+                          # set UI.style [("margin", "0"), ("color", "#ffd700"), ("font-weight", "bold")]
             pSaldo <- UI.span #+ [string saldoStr] 
-                             # set UI.style [("margin", "0"), ("color", "#ffd700")]
+                             # set UI.style [("margin", "0"), ("color", "#ffd700"), ("font-weight", "bold")]
 
-            navBarElem <- UI.div #+ [element pNome, element pId, element pSaldo] 
+            navBarElem <- UI.div #+ [UI.div #+ [element pNome, element pId, element pSaldo] # set UI.class_ "baccarat-info"] 
                                 # set UI.style 
                                     [ ("background", "rgba(0,0,0,0.5)")
-                                    , ("padding", "12px 30px")
+                                    , ("padding", "12px 20px")
                                     , ("width", "100%")
-                                    , ("height", "40px")
+                                    , ("min-height", "50px")
                                     , ("display", "flex")
                                     , ("justify-content", "space-around")
                                     , ("align-items", "center")
@@ -142,35 +164,39 @@ baccaratUI window playerId voltarAoMenu = do
                                     , ("z-index", "1000")
                                     , ("box-shadow", "0 4px 20px rgba(0, 0, 0, 0.8)")
                                     , ("border-bottom", "3px solid #ffd700")
+                                    , ("box-sizing", "border-box")
                                     ]
+                                # set UI.class_ "baccarat-nav"
 
             -- Container principal
             contentWrapper <- UI.div # set UI.style 
-                [ ("padding-top", "65px")
-                , ("height", "calc(100vh - 65px)")
+                [ ("padding-top", "70px")
+                , ("min-height", "calc(100vh - 70px)")
                 , ("display", "flex")
                 , ("flex-direction", "column")
                 , ("align-items", "center")
-                , ("justify-content", "center")
+                , ("justify-content", "flex-start")
                 , ("text-align", "center")
-                , ("overflow-y", "auto")
+                , ("padding-bottom", "20px")
+                , ("box-sizing", "border-box")
                 ]
 
             -- Título elegante
             title <- UI.h1 #+ [string "🃏 BACCARAT 🃏"]
                 # set UI.style
                     [ ("color", "#ffd700")
-                    , ("font-size", "2.5em")
-                    , ("margin", "0 0 20px 0")
+                    , ("font-size", "clamp(2em, 5vw, 2.5em)")
+                    , ("margin", "10px 0 20px 0")
                     , ("text-shadow", "3px 3px 6px rgba(0,0,0,0.8)")
                     , ("font-weight", "bold")
                     ]
+                # set UI.class_ "baccarat-titulo"
 
             -- Botão voltar elegante
             btnVoltarMenu <- UI.button #+ [string "🏠 VOLTAR AO MENU"]
                 # set UI.style
                     [ ("padding", "8px 16px")
-                    , ("font-size", "14px")
+                    , ("font-size", "clamp(0.9em, 2.2vw, 1.1em)")
                     , ("font-weight", "bold")
                     , ("background", "linear-gradient(145deg, #8b0000, #660000)")
                     , ("color", "#ffffff")
@@ -181,33 +207,20 @@ baccaratUI window playerId voltarAoMenu = do
                     , ("box-shadow", "0 4px 10px rgba(0,0,0,0.3)")
                     ]
 
-            -- Botão para explicar as regras
-            btnRegras <- UI.button #+ [string "❓ COMO JOGAR"]
-                # set UI.style
-                    [ ("padding", "8px 16px")
-                    , ("font-size", "14px")
-                    , ("font-weight", "bold")
-                    , ("background", "linear-gradient(145deg, #4169e1, #1e3a8a)")
-                    , ("color", "#ffffff")
-                    , ("border", "2px solid #6495ed")
-                    , ("border-radius", "8px")
-                    , ("cursor", "pointer")
-                    , ("margin", "10px")
-                    , ("box-shadow", "0 4px 10px rgba(0,0,0,0.3)")
-                    ]
-
             -- Display do saldo elegante
             saldoDisplay <- UI.p # set UI.text ("💰 Saldo: R$ " ++ show (saldo jogador))
                 # set UI.style
-                    [ ("font-size", "1.4em")
+                    [ ("font-size", "clamp(1.1em, 3vw, 1.4em)")
                     , ("color", "#ffd700")
                     , ("font-weight", "bold")
                     , ("background", "rgba(0,0,0,0.6)")
-                    , ("padding", "12px 24px")
+                    , ("padding", "12px 20px")
                     , ("border-radius", "12px")
                     , ("border", "3px solid #ffd700")
-                    , ("margin", "15px 0")
+                    , ("margin", "15px 20px")
                     , ("box-shadow", "0 4px 15px rgba(255,215,0,0.3)")
+                    , ("max-width", "400px")
+                    , ("width", "90%")
                     ]
 
             -- Container do jogo principal
@@ -216,113 +229,19 @@ baccaratUI window playerId voltarAoMenu = do
                 , ("border", "3px solid #ffd700")
                 , ("border-radius", "20px")
                 , ("padding", "25px")
-                , ("margin", "10px")
-                , ("min-width", "600px")
+                , ("margin", "10px 20px")
+                , ("width", "90%")
+                , ("max-width", "800px")
+                , ("min-width", "300px")
                 , ("box-shadow", "0 8px 30px rgba(0,0,0,0.6)")
+                , ("box-sizing", "border-box")
                 ]
-
-            -- Card explicativo das regras (inicialmente oculto)
-            regrasCard <- UI.div # set UI.style
-                [ ("position", "fixed")
-                , ("top", "50%")
-                , ("left", "50%")
-                , ("transform", "translate(-50%, -50%)")
-                , ("background", "linear-gradient(145deg, #2d3748, #1a202c)")
-                , ("border", "3px solid #ffd700")
-                , ("border-radius", "15px")
-                , ("padding", "25px")
-                , ("max-width", "700px")
-                , ("max-height", "80vh")
-                , ("overflow-y", "auto")
-                , ("z-index", "2000")
-                , ("color", "#ffffff")
-                , ("box-shadow", "0 10px 40px rgba(0,0,0,0.8)")
-                , ("display", "none")
-                ]
-
-            -- Overlay de fundo escuro (inicialmente oculto)
-            overlay <- UI.div # set UI.style
-                [ ("position", "fixed")
-                , ("top", "0")
-                , ("left", "0")
-                , ("width", "100%")
-                , ("height", "100%")
-                , ("background", "rgba(0,0,0,0.7)")
-                , ("z-index", "1500")
-                , ("display", "none")
-                ]
-
-            -- Conteúdo do card de regras
-            regrasTitle <- UI.h2 #+ [string "🃏 COMO JOGAR BACCARAT 🃏"]
-                # set UI.style
-                    [ ("color", "#ffd700")
-                    , ("text-align", "center")
-                    , ("margin-bottom", "20px")
-                    , ("font-size", "1.8em")
-                    ]
-
-            regrasTexto <- UI.div #+ 
-                [ UI.h3 #+ [string "🎯 OBJETIVO DO JOGO"]
-                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
-                , UI.p #+ [string "O objetivo é apostar na mão que ficará mais próxima de 9 pontos: Jogador, Banco ou Empate."]
-                    # set UI.style [("margin-bottom", "15px"), ("line-height", "1.4")]
-
-                , UI.h3 #+ [string "🃏 VALOR DAS CARTAS"]
-                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
-                , UI.ul #+ 
-                    [ UI.li #+ [string "Ás = 1 ponto"]
-                    , UI.li #+ [string "Cartas 2-9 = valor nominal"]
-                    , UI.li #+ [string "10, J, Q, K = 0 pontos"]
-                    ] # set UI.style [("margin-bottom", "15px"), ("line-height", "1.4")]
-
-                , UI.h3 #+ [string "🎲 COMO FUNCIONA"]
-                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
-                , UI.ul #+ 
-                    [ UI.li #+ [string "Cada mão recebe 2 cartas inicialmente"]
-                    , UI.li #+ [string "A pontuação é a soma das cartas módulo 10 (só o último dígito conta)"]
-                    , UI.li #+ [string "Exemplo: 7 + 8 = 15, mas vale 5 pontos"]
-                    , UI.li #+ [string "A mão mais próxima de 9 vence"]
-                    ] # set UI.style [("margin-bottom", "15px"), ("line-height", "1.4")]
-
-                , UI.h3 #+ [string "💰 TIPOS DE APOSTA"]
-                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
-                , UI.ul #+ 
-                    [ UI.li #+ [string "🎮 JOGADOR: Paga 1:1 (dobra sua aposta)"]
-                    , UI.li #+ [string "🏦 BANCO: Paga 1:1 (dobra sua aposta)"]
-                    , UI.li #+ [string "🤝 EMPATE: Paga 8:1 (multiplica por 8)"]
-                    ] # set UI.style [("margin-bottom", "15px"), ("line-height", "1.4")]
-
-                , UI.h3 #+ [string "💡 DICAS"]
-                    # set UI.style [("color", "#90ee90"), ("margin", "15px 0 8px 0")]
-                , UI.ul #+ 
-                    [ UI.li #+ [string "Banco tem ligeira vantagem estatística"]
-                    , UI.li #+ [string "Empate paga muito mais, mas é mais difícil"]
-                    , UI.li #+ [string "Aposta mínima: R$ 10"]
-                    ] # set UI.style [("margin-bottom", "20px"), ("line-height", "1.4")]
-                ]
-
-            btnFecharRegras <- UI.button #+ [string "❌ FECHAR"]
-                # set UI.style
-                    [ ("padding", "10px 20px")
-                    , ("font-size", "1.1em")
-                    , ("font-weight", "bold")
-                    , ("background", "linear-gradient(145deg, #dc3545, #c82333)")
-                    , ("color", "#ffffff")
-                    , ("border", "2px solid #dc3545")
-                    , ("border-radius", "8px")
-                    , ("cursor", "pointer")
-                    , ("margin-top", "15px")
-                    , ("display", "block")
-                    , ("margin-left", "auto")
-                    , ("margin-right", "auto")
-                    ]
-
-            void $ element regrasCard #+ [element regrasTitle, element regrasTexto, element btnFecharRegras]
+                # set UI.class_ "baccarat-container"
 
             -- Área de resultado
             resultado <- UI.div # set UI.text ""
                 # set UI.style
-                    [ ("font-size", "1.1em")
+                    [ ("font-size", "clamp(1em, 2.5vw, 1.2em)")
                     , ("font-weight", "bold")
                     , ("margin", "15px 0")
                     , ("min-height", "30px")
@@ -332,7 +251,7 @@ baccaratUI window playerId voltarAoMenu = do
             -- Inputs elegantes
             apostaLabel <- UI.p #+ [string "🎯 Escolha sua aposta:"]
                 # set UI.style
-                    [ ("font-size", "1.2em")
+                    [ ("font-size", "clamp(1em, 2.8vw, 1.2em)")
                     , ("color", "#ffffff")
                     , ("margin", "15px 0 8px 0")
                     , ("font-weight", "bold")
@@ -343,8 +262,8 @@ baccaratUI window playerId voltarAoMenu = do
                                          ,UI.option # set text "Empate" # set value "empate"]
                 # set UI.style 
                     [ ("margin", "0 10px")
-                    , ("padding", "8px 12px")
-                    , ("font-size", "1.1em")
+                    , ("padding", "10px 15px")
+                    , ("font-size", "clamp(1em, 2.5vw, 1.1em)")
                     , ("background", "#2d3748")
                     , ("color", "#ffffff")
                     , ("border", "2px solid #ffd700")
@@ -354,7 +273,7 @@ baccaratUI window playerId voltarAoMenu = do
 
             valorLabel <- UI.p #+ [string "💎 Valor da aposta (mínimo R$ 10):"]
                 # set UI.style
-                    [ ("font-size", "1.2em")
+                    [ ("font-size", "clamp(1em, 2.8vw, 1.2em)")
                     , ("color", "#ffffff")
                     , ("margin", "15px 0 8px 0")
                     , ("font-weight", "bold")
@@ -365,22 +284,24 @@ baccaratUI window playerId voltarAoMenu = do
                                   # set (attr "min") "10"
                                   # set UI.style 
                                       [ ("margin", "0 10px")
-                                      , ("padding", "10px 15px")
-                                      , ("font-size", "1.1em")
+                                      , ("padding", "12px 15px")
+                                      , ("font-size", "clamp(1em, 2.5vw, 1.1em)")
                                       , ("background", "#2d3748")
                                       , ("color", "#ffffff")
                                       , ("border", "2px solid #ffd700")
                                       , ("border-radius", "8px")
                                       , ("min-width", "200px")
                                       , ("text-align", "center")
+                                      , ("width", "90%")
+                                      , ("max-width", "300px")
                                       ]
 
             -- Botão jogar elegante
             btnJogar <- UI.button #+ [string "🎰 JOGAR AGORA!"]
                 # set UI.style
-                    [ ("font-size", "1.4em")
+                    [ ("font-size", "clamp(1.1em, 3vw, 1.4em)")
                     , ("font-weight", "bold")
-                    , ("padding", "12px 30px")
+                    , ("padding", "12px 25px")
                     , ("background", "linear-gradient(145deg, #ffd700, #b8860b)")
                     , ("color", "#000000")
                     , ("border", "3px solid #ffd700")
@@ -388,6 +309,8 @@ baccaratUI window playerId voltarAoMenu = do
                     , ("cursor", "pointer")
                     , ("margin", "20px 0")
                     , ("box-shadow", "0 6px 20px rgba(255,215,0,0.4)")
+                    , ("width", "90%")
+                    , ("max-width", "300px")
                     ]
 
             -- Seção do jogo
@@ -398,21 +321,29 @@ baccaratUI window playerId voltarAoMenu = do
                 , ("justify-content", "center")
                 ]
 
-            void $ element gameSection #+
-                [ element resultado
-                , element apostaLabel
+            inputsContainer <- UI.div #+ 
+                [ element apostaLabel
                 , element apostaSelect
                 , element valorLabel
                 , element valorInput
                 , element btnJogar
                 ]
+                # set UI.style
+                    [ ("display", "flex")
+                    , ("flex-direction", "column")
+                    , ("align-items", "center")
+                    , ("gap", "10px")
+                    ]
+                # set UI.class_ "baccarat-inputs"
+
+            void $ element gameSection #+
+                [ element resultado
+                , element inputsContainer
+                ]
 
             void $ element gameContainer #+ [element gameSection]
             
-            headerSection <- UI.div #+ [element title, 
-                                            UI.div #+ [element btnVoltarMenu, element btnRegras]
-                                                # set UI.style [("display", "flex"), ("gap", "10px"), ("justify-content", "center")]
-                                            ]
+            headerSection <- UI.div #+ [element title, element btnVoltarMenu]
                 # set UI.style
                     [ ("display", "flex")
                     , ("flex-direction", "column")
@@ -421,38 +352,17 @@ baccaratUI window playerId voltarAoMenu = do
                     ]
 
             void $ element contentWrapper #+ [element headerSection, element saldoDisplay, element gameContainer]
-            void $ element body #+ [element navBarElem, element contentWrapper, element overlay, element regrasCard]
+            void $ element body #+ [element navBarElem, element contentWrapper]
 
             -- Evento voltar ao menu
             void $ on UI.click btnVoltarMenu $ \_ -> voltarAoMenu
 
-            -- Eventos para o card de regras
-            let mostrarRegras = do
-                    void $ element overlay # set UI.style [("display", "block")]
-                    void $ element regrasCard # set UI.style [("display", "block")]
-                
-                esconderRegras = do
-                    void $ element overlay # set UI.style [("display", "none")]
-                    void $ element regrasCard # set UI.style [("display", "none")]
-
-            void $ on UI.click btnRegras $ \_ -> mostrarRegras
-            void $ on UI.click btnFecharRegras $ \_ -> esconderRegras
-            void $ on UI.click overlay $ \_ -> esconderRegras
-
             -- Funções para mostrar/esconder inputs
             let mostrarInputs = do
-                    void $ element apostaLabel   # set UI.style [("display", "block")]
-                    void $ element apostaSelect  # set UI.style [("display", "block")]
-                    void $ element valorLabel    # set UI.style [("display", "block")]
-                    void $ element valorInput    # set UI.style [("display", "block")]
-                    void $ element btnJogar      # set UI.style [("display", "block")]
+                    void $ element inputsContainer # set UI.style [("display", "flex"), ("flex-direction", "column"), ("align-items", "center"), ("gap", "10px")]
 
                 esconderInputs = do
-                    void $ element apostaLabel   # set UI.style [("display", "none")]
-                    void $ element apostaSelect  # set UI.style [("display", "none")]
-                    void $ element valorLabel    # set UI.style [("display", "none")]
-                    void $ element valorInput    # set UI.style [("display", "none")]
-                    void $ element btnJogar      # set UI.style [("display", "none")]
+                    void $ element inputsContainer # set UI.style [("display", "none")]
 
             mostrarInputs
 
@@ -473,10 +383,10 @@ baccaratUI window playerId voltarAoMenu = do
                 saldoAtual <- liftIO $ pure (saldo jogador)
                 if valor < 10
                   then void $ element resultado # set UI.text "⚠️ Aposta mínima é R$ 10!"
-                                               # set UI.style [("color", "#ff6b6b"), ("font-size", "1.2em")]
+                                               # set UI.style [("color", "#ff6b6b"), ("font-size", "clamp(1em, 2.8vw, 1.2em)")]
                 else if saldoAtual < (custoBaccarat + valor)
                   then void $ element resultado # set UI.text "💸 Saldo insuficiente!"
-                                               # set UI.style [("color", "#ff6b6b"), ("font-size", "1.2em")]
+                                               # set UI.style [("color", "#ff6b6b"), ("font-size", "clamp(1em, 2.8vw, 1.2em)")]
                 else do
                     esconderInputs
                     -- Sorteia cartas e calcula resultado
@@ -525,24 +435,25 @@ baccaratUI window playerId voltarAoMenu = do
 
                     -- Títulos das seções
                     jogadorTitle <- UI.h3 #+ [string "🎮 JOGADOR"]
-                        # set UI.style [("color", "#90ee90"), ("margin", "5px 0")]
+                        # set UI.style [("color", "#90ee90"), ("margin", "5px 0"), ("font-size", "clamp(1em, 2.5vw, 1.2em)")]
                     bancoTitle <- UI.h3 #+ [string "🏦 BANCO"] 
-                        # set UI.style [("color", "#ff9090"), ("margin", "5px 0")]
+                        # set UI.style [("color", "#ff9090"), ("margin", "5px 0"), ("font-size", "clamp(1em, 2.5vw, 1.2em)")]
                     
                     jogadorPontos <- UI.p #+ [string $ "Pontos: " ++ show pontosJ]
-                        # set UI.style [("font-size", "1.2em"), ("font-weight", "bold"), ("color", "#90ee90")]
+                        # set UI.style [("font-size", "clamp(1em, 2.5vw, 1.2em)"), ("font-weight", "bold"), ("color", "#90ee90")]
                     bancoPontos <- UI.p #+ [string $ "Pontos: " ++ show pontosB]
-                        # set UI.style [("font-size", "1.2em"), ("font-weight", "bold"), ("color", "#ff9090")]
+                        # set UI.style [("font-size", "clamp(1em, 2.5vw, 1.2em)"), ("font-weight", "bold"), ("color", "#ff9090")]
 
                     -- Container das cartas
                     cartasContainer <- UI.div # set UI.style 
                         [ ("display", "flex")
                         , ("flex-direction", "row")
                         , ("justify-content", "center")
-                        , ("gap", "40px")
+                        , ("gap", "30px")
                         , ("margin", "20px 0")
                         , ("flex-wrap", "wrap")
                         ]
+                        # set UI.class_ "baccarat-cartas"
 
                     jogadorSection <- UI.div #+ [element jogadorTitle, element maoJogadorView, element jogadorPontos]
                         # set UI.style [("text-align", "center")]
@@ -554,7 +465,7 @@ baccaratUI window playerId voltarAoMenu = do
                     -- Resultado final
                     vencedorText <- UI.p #+ [string $ "🏆 Vencedor: " ++ show vencedor]
                         # set UI.style 
-                            [ ("font-size", "1.4em")
+                            [ ("font-size", "clamp(1.1em, 3vw, 1.4em)")
                             , ("font-weight", "bold")
                             , ("color", "#ffd700")
                             , ("margin", "10px 0")
@@ -562,7 +473,7 @@ baccaratUI window playerId voltarAoMenu = do
                     
                     apostaText <- UI.p #+ [string $ "🎯 Sua aposta: " ++ show apostaEscolhida]
                         # set UI.style 
-                            [ ("font-size", "1.2em")
+                            [ ("font-size", "clamp(1em, 2.8vw, 1.2em)")
                             , ("color", "#ffffff")
                             , ("margin", "8px 0")
                             ]
@@ -571,7 +482,7 @@ baccaratUI window playerId voltarAoMenu = do
                         then UI.p #+ [string $ "🎉 VOCÊ GANHOU! Prêmio: R$ " ++ show premio] 
                              # set UI.style 
                                  [ ("color", "#00ff00")
-                                 , ("font-size", "1.5em")
+                                 , ("font-size", "clamp(1.2em, 3.5vw, 1.5em)")
                                  , ("font-weight", "bold")
                                  , ("margin", "15px 0")
                                  , ("text-shadow", "2px 2px 4px rgba(0,0,0,0.8)")
@@ -579,7 +490,7 @@ baccaratUI window playerId voltarAoMenu = do
                         else UI.p #+ [string "😔 Você perdeu! Tente novamente."] 
                              # set UI.style 
                                  [ ("color", "#ff6b6b")
-                                 , ("font-size", "1.3em")
+                                 , ("font-size", "clamp(1.1em, 3vw, 1.3em)")
                                  , ("font-weight", "bold")
                                  , ("margin", "15px 0")
                                  ]
@@ -598,7 +509,7 @@ baccaratUI window playerId voltarAoMenu = do
                         # set UI.style
                             [ ("margin-top", "20px")
                             , ("padding", "10px 25px")
-                            , ("font-size", "1.2em")
+                            , ("font-size", "clamp(1em, 2.8vw, 1.2em)")
                             , ("font-weight", "bold")
                             , ("background", "linear-gradient(145deg, #32cd32, #228b22)")
                             , ("color", "#ffffff")
@@ -606,6 +517,8 @@ baccaratUI window playerId voltarAoMenu = do
                             , ("border-radius", "10px")
                             , ("cursor", "pointer")
                             , ("box-shadow", "0 4px 15px rgba(50,205,50,0.3)")
+                            , ("width", "90%")
+                            , ("max-width", "250px")
                             ]
                     
                     void $ element resultado #+ [element novaRodadaBtn]
@@ -621,8 +534,10 @@ baccaratUI window playerId voltarAoMenu = do
                     , ("padding", "30px")
                     , ("border-radius", "10px")
                     , ("border", "2px solid #ff6b6b")
-                    , ("font-size", "1.3em")
+                    , ("font-size", "clamp(1.1em, 3vw, 1.3em)")
                     , ("margin", "50px auto")
-                    , ("max-width", "500px")
+                    , ("max-width", "90%")
+                    , ("width", "500px")
+                    , ("text-align", "center")
                     ]
             void $ element body #+ [element erro]

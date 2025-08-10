@@ -3,9 +3,9 @@ E:\ProjetosHaskell\PLP-project\plp-project.cabal:
 E:\ProjetosHaskell\PLP-project\src\EstadoGlobal.hs:
   hash: 8ce98b1a987e036f80a97aac629a28b0efc36d57c7bb4b749781caf635ef7320
 E:\ProjetosHaskell\PLP-project\src\Interface\BaccaratUI.hs:
-  hash: c62ddadfb9ea75b7ae32b9ca1be3e5f8ec5950ddac27cb599dd01bb5ea697866
+  hash: 27375fc8079f670d5c8423946d67a51a5e22ea225781a72c7a03fd59a790e1c2
 E:\ProjetosHaskell\PLP-project\src\Interface\BlackjackUI.hs:
-  hash: c6656dd640c9c4d3659b86d5b886d417c800dee9f531d52668566e38b6d6be78
+  hash: 45a70254ea257da02a5edfac47374a01af2a26b8cd76077cb0d3bd516984b671
 E:\ProjetosHaskell\PLP-project\src\Interface\CacaNiquelUI.hs:
   hash: 0d82b86963e5e7b60a67e885ef5b43232ed2125d4f55a9bcf948a52bb6ff5020
 E:\ProjetosHaskell\PLP-project\src\Interface\CaixaSurpresaUI.hs:
@@ -13,13 +13,13 @@ E:\ProjetosHaskell\PLP-project\src\Interface\CaixaSurpresaUI.hs:
 E:\ProjetosHaskell\PLP-project\src\Interface\MainUI.hs:
   hash: 854fbe2edb0d4e72e331eefc39cddc071e20c0798acb5ecf4c14a6c8df3210d8
 E:\ProjetosHaskell\PLP-project\src\Interface\MenuUI.hs:
-  hash: 1e610b53f1abd06f27a3b78c5cf816f20371a7962b88aae3e7206fd6be336bbd
+  hash: 9760c9826f2ee1823e8f70eafce9accc414c6bb77c2e0005110a88561cdfcc52
 E:\ProjetosHaskell\PLP-project\src\Interface\RankingUI.hs:
-  hash: c0149fea5fa54be2597075cb5d46422cb734cab5ae56c899c7b5dac0766a894b
+  hash: bccefe8dc98fdeadbd649b786958cad5817f598f71a8d3fdde3ac780edec292a
 E:\ProjetosHaskell\PLP-project\src\Jogos\Baccarat.hs:
   hash: c371cfbb1cd465a01264106d6f7c3c7313ba734a28d30b5ca59601347ed50f04
 E:\ProjetosHaskell\PLP-project\src\Jogos\Blackjack.hs:
-  hash: 99988c9b0d9c5f8cf65063420b1f32a4800eb5085164718b55bc22d9f657bdf0
+  hash: 48ac6667c552b1181f99ec450ebfc384311a6113dac7db2eeff156428c695f26
 E:\ProjetosHaskell\PLP-project\src\Jogos\CacaNiquel.hs:
   hash: 1a9185dad09186beb19621ad54b48ae59003862f1abb34e7beae5f0a3d8c64fd
 E:\ProjetosHaskell\PLP-project\src\Jogos\CaixaSurpresa.hs:
