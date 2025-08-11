@@ -117,18 +117,16 @@ caixaSurpresaUI window jogadorId voltarMenu = do
 
     -- Função para lidar com o clique na caixa
     let clickCaixa = do
-            -- Desabilita clique para evitar múltiplos cliques
             void $ element caixaImg # set UI.enabled False
             (premio, novoSaldo) <- liftIO $ abrirCaixa jogadorId
             void $ element caixaImg # set UI.style
                 [ ("width", "230px")
-                , ("cursor", "default")  -- cursor padrão pq está desabilitado
+                , ("cursor", "default")  
                 , ("transition", "transform 0.6s ease, width 0.6s ease")
                 ]
             void $ element caixaImg # set UI.src "static/CaixaSupresa/CaixaAberta.PNG"
             void $ element resultado # set text ("Você ganhou: R$ " ++ show premio)
             void $ element saldoLabel # set text ("Saldo: R$ " ++ printf "%.2f" novoSaldo)
-            -- Mostrar botão jogar novamente
             void $ element btnJogarNovamente # set UI.style [("display", "inline-block")]
 
     -- Associa o clique na caixa à função clickCaixa

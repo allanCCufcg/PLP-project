@@ -4,6 +4,16 @@ import System.Random (randomRIO)
 import EstadoGlobal 
   ( PlayerID, Jogador(..), getGlobalData, registrarJogada, jogadores )
 
+{- 
+Este código implementa o funcionamento da "Caixa Surpresa" no jogo.
+
+FUNCIONAMENTO RESUMIDO:
+Existe uma lista de prêmios possíveis, cada um com um "peso" que indica sua chance de sair.
+Para sortear, o programa repete cada prêmio várias vezes de acordo com seu peso 
+(por exemplo, prêmio de R$0 com peso 20 aparece 20 vezes numa lista), 
+e depois escolhe um deles aleatoriamente, utilizando o randomRIO.
+-}
+
 type Premio = Int
 
 -- Lista de prêmios com suas respectivas "probabilidades" (ponderação)
