@@ -3,7 +3,7 @@ module Interface.BaccaratUI (baccaratUI) where
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 import EstadoGlobal (PlayerID, buscarJogadorPorID, Jogador(..), registrarJogada, adicionarSaldo)
-import Jogos.Baccarat (Aposta(..), calcularVencedor, multiplicadorPremio, custoBaccarat)
+import Jogos.Baccarat (Aposta(..), calcularVencedor, multiplicadorPremio)
 import System.Random (randomRIO)
 import Control.Monad (void, when)
 import Control.Monad.IO.Class (liftIO)
@@ -49,7 +49,7 @@ sortearMao = do
     let pontos = sum (map valorBaccarat cartas) `mod` 10
     return (cartas, pontos)
 
--- Função para criar visual de cartas usando o mesmo estilo do Blackjack
+-- Função para criar visual de cartas
 cartaVisual :: Carta -> UI Element
 cartaVisual carta = do
     let v = valor carta
@@ -366,165 +366,170 @@ baccaratUI window playerId voltarAoMenu = do
 
             mostrarInputs
 
-            -- Click effects (Threepenny não suporta mouseenter/mouseleave)
+            -- Click effects
             void $ on UI.mousedown btnJogar $ \_ -> element btnJogar # set UI.style [("transform", "scale(0.95)")]
             void $ on UI.mouseup btnJogar $ \_ -> element btnJogar # set UI.style [("transform", "scale(1)")]
 
             void $ on UI.click btnJogar $ \_ -> do
                 valorStr <- get value valorInput
                 apostaIdx <- get UI.selection apostaSelect
-                let valorRaw = if null valorStr then 0 else read valorStr :: Float
-                let valor = abs valorRaw
+                let valorAposta = if null valorStr then 0 else abs (read valorStr :: Float)
                 let apostaEscolhida = case apostaIdx of
                         Just 0 -> Banco
                         Just 1 -> Player
                         Just 2 -> Empate
                         _      -> Banco
-                saldoAtual <- liftIO $ pure (saldo jogador)
-                if valor < 10
-                  then void $ element resultado # set UI.text "⚠️ Aposta mínima é R$ 10!"
-                                               # set UI.style [("color", "#ff6b6b"), ("font-size", "clamp(1em, 2.8vw, 1.2em)")]
-                else if saldoAtual < (custoBaccarat + valor)
-                  then void $ element resultado # set UI.text "💸 Saldo insuficiente!"
-                                               # set UI.style [("color", "#ff6b6b"), ("font-size", "clamp(1em, 2.8vw, 1.2em)")]
-                else do
-                    esconderInputs
-                    -- Sorteia cartas e calcula resultado
-                    (cartasJogador, pontosJ) <- liftIO sortearMao
-                    (cartasBanco, pontosB) <- liftIO sortearMao
-                    
-                    -- Converte as cartas para o formato esperado pela lógica do Baccarat
-                    let maoJogadorInt = map valorBaccarat cartasJogador
-                        maoBancoInt = map valorBaccarat cartasBanco
-                        vencedor = calcularVencedor maoJogadorInt maoBancoInt
-                        ganhou = apostaEscolhida == vencedor
-                        premio = if ganhou
-                                 then valor * multiplicadorPremio vencedor
-                                 else 0
+                
+                
+                maybeJogadorAtual <- liftIO $ buscarJogadorPorID playerId
+                saldoAtual <- case maybeJogadorAtual of
+                    Just j -> return (saldo j)
+                    Nothing -> do
+                        liftIO $ putStrLn "Erro: Jogador não encontrado"
+                        return 0
+                
+                
+                if valorAposta < 10
+                    then void $ element resultado # set UI.text "⚠️ Aposta mínima é R$ 10!"
+                                                # set UI.style [("color", "#ff6b6b")]
+                    else if valorAposta > saldoAtual
+                        then void $ element resultado # set UI.text ("💸 Aposta máxima: R$ " ++ show saldoAtual)
+                                                    # set UI.style [("color", "#ff6b6b")]
+                        else do
+                            esconderInputs
+                            (cartasJogador, pontosJ) <- liftIO sortearMao
+                            (cartasBanco, pontosB) <- liftIO sortearMao
+                            
+                            let maoJogadorInt = map valorBaccarat cartasJogador
+                                maoBancoInt = map valorBaccarat cartasBanco
+                                vencedor = calcularVencedor maoJogadorInt maoBancoInt
+                                ganhou = apostaEscolhida == vencedor
+                                premio = if ganhou
+                                         then valorAposta * multiplicadorPremio vencedor
+                                         else 0
 
-                    -- Atualiza stats e saldo
-                    liftIO $ registrarJogada playerId "Baccarat" (round valor) premio
-                    when ganhou $ liftIO $ adicionarSaldo playerId premio
+                            liftIO $ registrarJogada playerId "Baccarat" (round valorAposta) premio
+                            when ganhou $ liftIO $ adicionarSaldo playerId premio
 
-                    -- Atualiza saldo na tela
-                    maybeJogadorNovo <- liftIO $ buscarJogadorPorID playerId
-                    case maybeJogadorNovo of
-                        Just jNovo -> do
-                            void $ element saldoDisplay # set UI.text ("💰 Saldo: R$ " ++ show (saldo jNovo))
-                            void $ element pSaldo # set UI.text ("💰 $" ++ show (saldo jNovo))
-                        Nothing    -> pure ()
+                            
+                            maybeJogadorNovo <- liftIO $ buscarJogadorPorID playerId
+                            case maybeJogadorNovo of
+                                Just jNovo -> do
+                                    void $ element saldoDisplay # set UI.text ("💰 Saldo: R$ " ++ show (saldo jNovo))
+                                    void $ element pSaldo # set UI.text ("💰 $" ++ show (saldo jNovo))
+                                Nothing    -> pure ()
 
-                    -- Visual das cartas lado a lado MELHORADO
-                    maoJogadorView <- cartasVisuais cartasJogador
-                        # set UI.style 
-                            [ ("margin-bottom", "12px")
-                            , ("padding", "15px")
-                            , ("background", "rgba(0,100,0,0.2)")
-                            , ("border-radius", "10px")
-                            , ("border", "2px solid #90ee90")
-                            ]
-                    
-                    maoBancoView <- cartasVisuais cartasBanco
-                        # set UI.style 
-                            [ ("margin-bottom", "12px")
-                            , ("padding", "15px")
-                            , ("background", "rgba(100,0,0,0.2)")
-                            , ("border-radius", "10px")
-                            , ("border", "2px solid #ff9090")
-                            ]
+                            
+                            maoJogadorView <- cartasVisuais cartasJogador
+                                # set UI.style 
+                                    [ ("margin-bottom", "12px")
+                                    , ("padding", "15px")
+                                    , ("background", "rgba(0,100,0,0.2)")
+                                    , ("border-radius", "10px")
+                                    , ("border", "2px solid #90ee90")
+                                    ]
+                            
+                            maoBancoView <- cartasVisuais cartasBanco
+                                # set UI.style 
+                                    [ ("margin-bottom", "12px")
+                                    , ("padding", "15px")
+                                    , ("background", "rgba(100,0,0,0.2)")
+                                    , ("border-radius", "10px")
+                                    , ("border", "2px solid #ff9090")
+                                    ]
 
-                    -- Títulos das seções
-                    jogadorTitle <- UI.h3 #+ [string "🎮 JOGADOR"]
-                        # set UI.style [("color", "#90ee90"), ("margin", "5px 0"), ("font-size", "clamp(1em, 2.5vw, 1.2em)")]
-                    bancoTitle <- UI.h3 #+ [string "🏦 BANCO"] 
-                        # set UI.style [("color", "#ff9090"), ("margin", "5px 0"), ("font-size", "clamp(1em, 2.5vw, 1.2em)")]
-                    
-                    jogadorPontos <- UI.p #+ [string $ "Pontos: " ++ show pontosJ]
-                        # set UI.style [("font-size", "clamp(1em, 2.5vw, 1.2em)"), ("font-weight", "bold"), ("color", "#90ee90")]
-                    bancoPontos <- UI.p #+ [string $ "Pontos: " ++ show pontosB]
-                        # set UI.style [("font-size", "clamp(1em, 2.5vw, 1.2em)"), ("font-weight", "bold"), ("color", "#ff9090")]
+                            -- Títulos das seções
+                            jogadorTitle <- UI.h3 #+ [string "🎮 JOGADOR"]
+                                # set UI.style [("color", "#90ee90"), ("margin", "5px 0")]
+                            bancoTitle <- UI.h3 #+ [string "🏦 BANCO"] 
+                                # set UI.style [("color", "#ff9090"), ("margin", "5px 0")]
+                            
+                            jogadorPontos <- UI.p #+ [string $ "Pontos: " ++ show pontosJ]
+                                # set UI.style [("font-weight", "bold"), ("color", "#90ee90")]
+                            bancoPontos <- UI.p #+ [string $ "Pontos: " ++ show pontosB]
+                                # set UI.style [("font-weight", "bold"), ("color", "#ff9090")]
 
-                    -- Container das cartas
-                    cartasContainer <- UI.div # set UI.style 
-                        [ ("display", "flex")
-                        , ("flex-direction", "row")
-                        , ("justify-content", "center")
-                        , ("gap", "30px")
-                        , ("margin", "20px 0")
-                        , ("flex-wrap", "wrap")
-                        ]
-                        # set UI.class_ "baccarat-cartas"
+                            -- Container das cartas
+                            cartasContainer <- UI.div # set UI.style 
+                                [ ("display", "flex")
+                                , ("flex-direction", "row")
+                                , ("justify-content", "center")
+                                , ("gap", "30px")
+                                , ("margin", "20px 0")
+                                , ("flex-wrap", "wrap")
+                                ]
+                                # set UI.class_ "baccarat-cartas"
 
-                    jogadorSection <- UI.div #+ [element jogadorTitle, element maoJogadorView, element jogadorPontos]
-                        # set UI.style [("text-align", "center")]
-                    bancoSection <- UI.div #+ [element bancoTitle, element maoBancoView, element bancoPontos]
-                        # set UI.style [("text-align", "center")]
-                    
-                    void $ element cartasContainer #+ [element jogadorSection, element bancoSection]
+                            jogadorSection <- UI.div #+ [element jogadorTitle, element maoJogadorView, element jogadorPontos]
+                                # set UI.style [("text-align", "center")]
+                            bancoSection <- UI.div #+ [element bancoTitle, element maoBancoView, element bancoPontos]
+                                # set UI.style [("text-align", "center")]
+                            
+                            void $ element cartasContainer #+ [element jogadorSection, element bancoSection]
 
-                    -- Resultado final
-                    vencedorText <- UI.p #+ [string $ "🏆 Vencedor: " ++ show vencedor]
-                        # set UI.style 
-                            [ ("font-size", "clamp(1.1em, 3vw, 1.4em)")
-                            , ("font-weight", "bold")
-                            , ("color", "#ffd700")
-                            , ("margin", "10px 0")
-                            ]
-                    
-                    apostaText <- UI.p #+ [string $ "🎯 Sua aposta: " ++ show apostaEscolhida]
-                        # set UI.style 
-                            [ ("font-size", "clamp(1em, 2.8vw, 1.2em)")
-                            , ("color", "#ffffff")
-                            , ("margin", "8px 0")
-                            ]
+                            -- Resultado final
+                            vencedorText <- UI.p #+ [string $ "🏆 Vencedor: " ++ show vencedor]
+                                # set UI.style 
+                                    [ ("font-size", "clamp(1.1em, 3vw, 1.4em)")
+                                    , ("font-weight", "bold")
+                                    , ("color", "#ffd700")
+                                    , ("margin", "10px 0")
+                                    ]
+                            
+                            apostaText <- UI.p #+ [string $ "🎯 Sua aposta: " ++ show apostaEscolhida]
+                                # set UI.style 
+                                    [ ("font-size", "clamp(1em, 2.8vw, 1.2em)")
+                                    , ("color", "#ffffff")
+                                    , ("margin", "8px 0")
+                                    ]
 
-                    resultadoFinal <- if ganhou
-                        then UI.p #+ [string $ "🎉 VOCÊ GANHOU! Prêmio: R$ " ++ show premio] 
-                             # set UI.style 
-                                 [ ("color", "#00ff00")
-                                 , ("font-size", "clamp(1.2em, 3.5vw, 1.5em)")
-                                 , ("font-weight", "bold")
-                                 , ("margin", "15px 0")
-                                 , ("text-shadow", "2px 2px 4px rgba(0,0,0,0.8)")
-                                 ]
-                        else UI.p #+ [string "😔 Você perdeu! Tente novamente."] 
-                             # set UI.style 
-                                 [ ("color", "#ff6b6b")
-                                 , ("font-size", "clamp(1.1em, 3vw, 1.3em)")
-                                 , ("font-weight", "bold")
-                                 , ("margin", "15px 0")
-                                 ]
+                            resultadoFinal <- if ganhou
+                                then UI.p #+ [string $ "🎉 VOCÊ GANHOU! Prêmio: R$ " ++ show premio] 
+                                     # set UI.style 
+                                         [ ("color", "#00ff00")
+                                         , ("font-size", "clamp(1.2em, 3.5vw, 1.5em)")
+                                         , ("font-weight", "bold")
+                                         , ("margin", "15px 0")
+                                         , ("text-shadow", "2px 2px 4px rgba(0,0,0,0.8)")
+                                         ]
+                                else UI.p #+ [string "😔 Você perdeu! Tente novamente."] 
+                                     # set UI.style 
+                                         [ ("color", "#ff6b6b")
+                                         , ("font-size", "clamp(1.1em, 3vw, 1.3em)")
+                                         , ("font-weight", "bold")
+                                         , ("margin", "15px 0")
+                                         ]
 
-                    -- Exibe tudo na interface
-                    void $ element resultado # set UI.children []
-                    void $ element resultado #+ 
-                        [ element cartasContainer
-                        , element vencedorText
-                        , element apostaText  
-                        , element resultadoFinal
-                        ]
+                            -- Exibe tudo na interface
+                            void $ element resultado # set UI.children []
+                            void $ element resultado #+ 
+                                [ element cartasContainer
+                                , element vencedorText
+                                , element apostaText  
+                                , element resultadoFinal
+                                ]
 
-                    -- Botão Nova Rodada elegante
-                    novaRodadaBtn <- UI.button #+ [string "🔄 NOVA RODADA"]
-                        # set UI.style
-                            [ ("margin-top", "20px")
-                            , ("padding", "10px 25px")
-                            , ("font-size", "clamp(1em, 2.8vw, 1.2em)")
-                            , ("font-weight", "bold")
-                            , ("background", "linear-gradient(145deg, #32cd32, #228b22)")
-                            , ("color", "#ffffff")
-                            , ("border", "3px solid #32cd32")
-                            , ("border-radius", "10px")
-                            , ("cursor", "pointer")
-                            , ("box-shadow", "0 4px 15px rgba(50,205,50,0.3)")
-                            , ("width", "90%")
-                            , ("max-width", "250px")
-                            ]
-                    
-                    void $ element resultado #+ [element novaRodadaBtn]
-                    void $ on UI.click novaRodadaBtn $ \_ -> do
-                        void $ element resultado # set UI.children []
-                        mostrarInputs
+                            -- Botão Nova Rodada elegante
+                            novaRodadaBtn <- UI.button #+ [string "🔄 NOVA RODADA"]
+                                # set UI.style
+                                    [ ("margin-top", "20px")
+                                    , ("padding", "10px 25px")
+                                    , ("font-size", "clamp(1em, 2.8vw, 1.2em)")
+                                    , ("font-weight", "bold")
+                                    , ("background", "linear-gradient(145deg, #32cd32, #228b22)")
+                                    , ("color", "#ffffff")
+                                    , ("border", "3px solid #32cd32")
+                                    , ("border-radius", "10px")
+                                    , ("cursor", "pointer")
+                                    , ("box-shadow", "0 4px 15px rgba(50,205,50,0.3)")
+                                    , ("width", "90%")
+                                    , ("max-width", "250px")
+                                    ]
+                            
+                            void $ element resultado #+ [element novaRodadaBtn]
+                            void $ on UI.click novaRodadaBtn $ \_ -> do
+                                void $ element resultado # set UI.children []
+                                mostrarInputs
 
         Nothing -> do
             erro <- UI.div #+ [string "⚠️ Erro: Jogador não encontrado. Por favor, volte à tela inicial."]
