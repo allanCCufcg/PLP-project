@@ -14,6 +14,7 @@ module Jogos.Blackjack
 import System.Random (randomRIO)
 import EstadoGlobal
 import qualified Data.Map as Map
+import Control.Monad (when)
 
 -- Tipo dos naipes
 data Naipe = Espadas | Copas | Ouros | Paus
@@ -21,11 +22,14 @@ data Naipe = Espadas | Copas | Ouros | Paus
 
 -- Tipo dos valores das cartas
 data Valor = As | Numero Int | Valete | Dama | Rei
-  deriving (Eq)
+  deriving (Eq, Show)
 
 -- Tipo da carta
 data Carta = Carta { valor :: Valor, naipe :: Naipe }
   deriving (Eq)
+
+instance Show Carta where
+    show = mostrarCarta
 
 -- Mostrar carta como string
 mostrarCarta :: Carta -> String
@@ -44,15 +48,13 @@ mostrarCarta (Carta v n) = valorStr v ++ naipeStr n
 mostrarMao :: [Carta] -> String
 mostrarMao = unwords . map mostrarCarta
 
--- Baralho padrão
+-- Baralho padrão completo (52 cartas)
 baralho :: [Carta]
-baralho = [Carta v n | v <- todosValores, n <- todosNaipes]
-  where
-    todosValores = [As] ++ map Numero [2..10] ++ [Valete, Dama, Rei]
-    todosNaipes = [minBound .. maxBound] :: [Naipe]
+baralho = [Carta v n | n <- [Espadas .. Paus], 
+                       v <- [As] ++ map Numero [2..10] ++ [Valete, Dama, Rei]]
 
--- Sorteia uma carta e retorna a carta e o baralho sem ela
 sortCarta :: [Carta] -> IO (Carta, [Carta])
+sortCarta [] = error "Baralho vazio!"
 sortCarta b = do
     idx <- randomRIO (0, length b - 1)
     let carta = b !! idx
@@ -82,7 +84,7 @@ pontuacao cartas =
         ajustarAs (valoresSemAs + quantidadeAs) quantidadeAs
 
 valorAposta :: Float
-valorAposta = 20
+valorAposta = 10
 
 mostraSaldo :: PlayerID -> IO Float
 mostraSaldo pid = do
@@ -98,13 +100,14 @@ jogarBlackjack pid = do
     if saldoAtual < valorAposta
         then putStrLn "Saldo insuficiente para jogar!"
         else do
-            -- Distribuir cartas iniciais (2 para jogador e 2 para dealer)
-            (c1, b1) <- sortCarta baralho
+            let baralhoCompleto = baralho
+            
+            (c1, b1) <- sortCarta baralhoCompleto
             (c2, b2) <- sortCarta b1
             let maoJogador = [c1, c2]
 
             (d1, b3) <- sortCarta b2
-            (d2, _)  <- sortCarta b3
+            (d2, b4) <- sortCarta b3
             let maoDealer = [d1, d2]
 
             putStrLn $ "Sua mão: " ++ mostrarMao maoJogador ++ " (" ++ show (pontuacao maoJogador) ++ ")"
@@ -121,4 +124,3 @@ jogarBlackjack pid = do
                 else do
                     registrarJogada pid "BlackJack" (round valorAposta) 0
                     putStrLn "Você perdeu!"
-
