@@ -81,12 +81,8 @@ pontuacao cartas =
     in
         ajustarAs (valoresSemAs + quantidadeAs) quantidadeAs
 
--- =========================
--- Integração com EstadoGlobal
--- =========================
-
 valorAposta :: Float
-valorAposta = 20 -- aposta fixa por rodada
+valorAposta = 20
 
 mostraSaldo :: PlayerID -> IO Float
 mostraSaldo pid = do
@@ -117,7 +113,6 @@ jogarBlackjack pid = do
             let pontosJ = pontuacao maoJogador
             let pontosD = pontuacao maoDealer
 
-            -- Aqui lógica mínima: só compara direto (UI pode expandir com hit/stand)
             if pontosJ > pontosD && pontosJ <= 21 || pontosD > 21
                 then do
                     let ganho = valorAposta
@@ -126,3 +121,4 @@ jogarBlackjack pid = do
                 else do
                     registrarJogada pid "BlackJack" (round valorAposta) 0
                     putStrLn "Você perdeu!"
+
