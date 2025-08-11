@@ -82,10 +82,9 @@ novaPartida pid = do
           | otherwise       = ""
     let terminou = pontBanca == 21
     when terminou $ do
-        removerSaldo pid 10 -- banca já ganha e jogador perde 10
+        removerSaldo pid 10
     return $ EstadoBJ pid mj mb bar4 st terminou
 
--- Atualiza saldo com base no resultado fixo
 atualizarSaldoPorResultado :: PlayerID -> String -> IO ()
 atualizarSaldoPorResultado pid resultado = do
     case resultado of
@@ -441,4 +440,5 @@ blackjackUI window playerId voltarAoMenu = do
       Nothing -> do
         erro <- UI.div # set UI.text "Jogador não encontrado."
                       # set UI.style [("color", "red"), ("font-weight", "bold"), ("font-size", "1.2em")]
+
         void $ element body #+ [element erro]
