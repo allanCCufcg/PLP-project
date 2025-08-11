@@ -14,15 +14,18 @@ naipes = ["♠", "♥", "♦", "♣"]
 cartaVisual :: Logica.Carta -> UI Element
 cartaVisual carta = do
     let v = Logica.valor carta
-        (valorStr, idx) = case v of
-            Logica.As         -> ("A", 0)
-            Logica.Numero n   -> (show n, n `mod` 4)
-            Logica.Valete     -> ("J", 1)
-            Logica.Dama       -> ("Q", 2)
-            Logica.Rei        -> ("K", 3)
-        naipes = ["♠", "♥", "♦", "♣"]
-        naipe = naipes !! idx
-        cor = if naipe == "♥" || naipe == "♦" then "#e53935" else "#222"
+        valorStr = case v of
+            Logica.As         -> "A"
+            Logica.Numero n   -> show n
+            Logica.Valete     -> "J"
+            Logica.Dama       -> "Q"
+            Logica.Rei        -> "K"
+        naipeSym = case Logica.naipe carta of
+            Logica.Espadas -> "♠"
+            Logica.Copas   -> "♥"
+            Logica.Ouros   -> "♦"
+            Logica.Paus    -> "♣"
+        cor = if naipeSym == "♥" || naipeSym == "♦" then "#e53935" else "#222"
     UI.div # set UI.style
         [ ("display", "inline-block")
         , ("width", "40px")
@@ -37,7 +40,7 @@ cartaVisual carta = do
         , ("position", "relative")
         ]
         # set UI.class_ "carta"
-        #+ [ UI.span # set UI.text naipe
+        #+ [ UI.span # set UI.text naipeSym
                      # set UI.style [ ("position","absolute")
                                    , ("top","2px")
                                    , ("left","4px")
@@ -132,29 +135,58 @@ pedirCarta pid est
           Nothing -> return est
           Just jog ->
             if saldo jog <= 0 then return est else do
-              (nova, novoBaralho) <- Logica.sortCarta (baralho est)
-              let mj = maoJogador est ++ [nova]
+              (novaJogador, baralho1) <- Logica.sortCarta (baralho est)
+              let mj = maoJogador est ++ [novaJogador]
               let somaJ = Logica.pontuacao mj
               
               if somaJ > 21
                 then do
-                  (mb, barFinal) <- loopBanca (maoBanca est) novoBaralho
-                  let somaB = Logica.pontuacao mb
-                  let resultado = if somaB > 21 then "Empate" else "O Oponente Venceu"
-                  
-                  atualizarSaldoPorResultado pid resultado
+                  atualizarSaldoPorResultado pid "O Oponente Venceu"
                   return est { 
                     maoJogador = mj, 
-                    maoBanca = mb, 
-                    baralho = barFinal,
-                    status = resultado, 
+                    baralho = baralho1,
+                    status = "O Oponente Venceu", 
                     fim = True 
                   }
                 else do
-                  return est { 
-                    maoJogador = mj, 
-                    baralho = novoBaralho
-                  }
+                  let somaB = Logica.pontuacao (maoBanca est)
+                  if somaB < 17
+                    then do
+                      (novaBanca, baralho2) <- Logica.sortCarta baralho1
+                      let mb = maoBanca est ++ [novaBanca]
+                      let novaSomaB = Logica.pontuacao mb
+                      
+                      if novaSomaB > 21
+                        then do
+                          atualizarSaldoPorResultado pid "Você Venceu"
+                          return est {
+                            maoJogador = mj,
+                            maoBanca = mb,
+                            baralho = baralho2,
+                            status = "Você Venceu",
+                            fim = True
+                          }
+                        else if novaSomaB == 21
+                          then do
+                            atualizarSaldoPorResultado pid "O Oponente Venceu"
+                            return est {
+                              maoJogador = mj,
+                              maoBanca = mb,
+                              baralho = baralho2,
+                              status = "O Oponente Venceu",
+                              fim = True
+                            }
+                          else
+                            return est {
+                              maoJogador = mj,
+                              maoBanca = mb,
+                              baralho = baralho2
+                            }
+                    else
+                      return est {
+                        maoJogador = mj,
+                        baralho = baralho1
+                      }
 
 parar :: PlayerID -> EstadoBJ -> IO EstadoBJ
 parar pid est
@@ -165,7 +197,7 @@ parar pid est
           Nothing -> return est
           Just jog ->
             if saldo jog <= 0 then return est else do
-              (mb, bar1) <- loopBanca (maoBanca est) (baralho est)
+              (mb, barFinal) <- loopBanca (maoBanca est) (baralho est)
               let mj = maoJogador est
               let somaJ = Logica.pontuacao mj
               let somaB = Logica.pontuacao mb
@@ -178,7 +210,7 @@ parar pid est
                     | otherwise = "Empate"
               
               atualizarSaldoPorResultado pid resultado
-              return est { maoBanca = mb, baralho = bar1, status = resultado, fim = True }
+              return est { maoBanca = mb, baralho = barFinal, status = resultado, fim = True }
 
 loopBanca :: [Logica.Carta] -> [Logica.Carta] -> IO ([Logica.Carta], [Logica.Carta])
 loopBanca pb baralho = do
