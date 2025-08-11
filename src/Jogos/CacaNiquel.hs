@@ -1,4 +1,3 @@
--- src/Jogos/CacaNiquel.hs
 module Jogos.CacaNiquel
   ( jogarCacaNiquel
   , girar
@@ -16,7 +15,6 @@ import Data.Map (Map)
 
 type Simbolo = String
 
--- Mapa de multiplicadores por símbolo
 multiplicadores :: Map Simbolo Float
 multiplicadores = Map.fromList
   [ ("TIGRE", 250)
@@ -27,9 +25,6 @@ multiplicadores = Map.fromList
   , ("ESTRELA", 3)
   ]
 
--- Símbolos com probabilidade controlada para balancear chances (soma 100)
--- Exemplo: "ESTRELA" tem 22% de chance, "TIGRE" 13%, etc.
--- A lista é construída replicando os símbolos conforme a frequência desejada.
 simbolosComPeso :: [Simbolo]
 simbolosComPeso =
   replicate 13 "TIGRE" ++
@@ -42,17 +37,14 @@ simbolosComPeso =
 valorAposta :: Float
 valorAposta = 10
 
--- Sorteia um símbolo com base na lista com peso
 sortearSimbolo :: IO Simbolo
 sortearSimbolo = do
   idx <- randomRIO (0, length simbolosComPeso - 1)
   return (simbolosComPeso !! idx)
 
--- Gira os 3 rolos
 girar :: IO [Simbolo]
 girar = replicateM 3 sortearSimbolo
 
--- Verifica se houve vitória (3 símbolos iguais)
 verificarVitoria :: [Simbolo] -> Bool
 verificarVitoria [x,y,z] = x == y && y == z
 verificarVitoria _ = False
@@ -88,3 +80,4 @@ mostraSaldo pid = do
     case maybeJogador of
         (j:_) -> return (saldo j)
         []    -> return 0
+
