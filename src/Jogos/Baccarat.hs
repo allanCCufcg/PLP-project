@@ -2,23 +2,19 @@ module Jogos.Baccarat
   ( jogarBaccarat
   , calcularVencedor
   , multiplicadorPremio
-  , custoBaccarat
   , Aposta(..)
   ) where
 
 import System.Random (randomRIO)
-import EstadoGlobal (PlayerID, getGlobalData, jogadores, playerID, saldo, registrarJogada)
-import qualified Data.Map as Map
-
+import EstadoGlobal (PlayerID, buscarJogadorPorID, registrarJogada, saldo)
 
 data Aposta = Banco | Player | Empate deriving (Show, Eq, Read)
 
-custoBaccarat :: Float
-custoBaccarat = 10
 
 multiplicadorPremio :: Aposta -> Float
 multiplicadorPremio Empate = 8.0
-multiplicadorPremio _      = 1.0
+multiplicadorPremio Banco  = 1.0
+multiplicadorPremio Player = 1.0
 
 sorteiaCarta :: IO Int
 sorteiaCarta = randomRIO (0, 9)
@@ -42,33 +38,41 @@ calcularVencedor maoJ maoB =
 
 jogarBaccarat :: PlayerID -> Aposta -> Float -> IO ()
 jogarBaccarat pid aposta valorAposta = do
-    dados <- getGlobalData
-    let maybeJogador = filter (\j -> playerID j == pid) (jogadores dados)
+    maybeJogador <- buscarJogadorPorID pid
     case maybeJogador of
-      [] -> putStrLn "Jogador nao encontrado."
-      (j:_) -> do
+      Nothing -> putStrLn "Jogador não encontrado."
+      Just j -> do
         let saldoAtual = saldo j
-            custoTotal = custoBaccarat + valorAposta
-        if saldoAtual < custoTotal
-          then putStrLn "Saldo insuficiente para apostar!"
-          else do
-            putStrLn "Sorteando cartas..."
-            (maoJogador, maoBanco) <- sortearMaos
-            let vencedor = calcularVencedor maoJogador maoBanco
-                ganhou = aposta == vencedor
-                pontosJ = sum maoJogador `mod` 10
-                pontosB = sum maoBanco `mod` 10
-                premio = if ganhou
-                          then multiplicadorPremio aposta * valorAposta
-                          else 0
-            registrarJogada pid "Baccarat" (round custoTotal) premio
-            putStrLn $ "Mao Jogador: " ++ show maoJogador ++ " -> " ++ show pontosJ
-            putStrLn $ "Mao Banco:   " ++ show maoBanco ++ " -> " ++ show pontosB
-            putStrLn $ "Vencedor: " ++ show vencedor
-            putStrLn $ "Sua aposta: " ++ show aposta
-            if ganhou
-              then putStrLn $ "Parabens! Voce ganhou " ++ show premio ++ " pontos!"
-              else putStrLn "Que pena! Voce nao ganhou"
-                    
-
-
+        
+        if valorAposta < 10
+          then putStrLn "Aposta mínima: R$ 10!"
+          else if valorAposta > saldoAtual
+            then putStrLn $ "💸 Aposta máxima: R$ " ++ show saldoAtual
+            else do
+                putStrLn "Sorteando cartas..."
+                (maoJogador, maoBanco) <- sortearMaos
+                
+                let vencedor = calcularVencedor maoJogador maoBanco
+                    ganhou = aposta == vencedor
+                    pontosJ = sum maoJogador `mod` 10
+                    pontosB = sum maoBanco `mod` 10
+                    premio = if ganhou
+                              then valorAposta * multiplicadorPremio aposta
+                              else 0
+                
+                registrarJogada pid "Baccarat" (round valorAposta) premio
+                
+                putStrLn $ "\n=== RESULTADO ==="
+                putStrLn $ "Mão Jogador: " ++ show maoJogador ++ " (" ++ show pontosJ ++ " pontos)"
+                putStrLn $ "Mão Banco:   " ++ show maoBanco ++ " (" ++ show pontosB ++ " pontos)"
+                putStrLn $ "Vencedor: " ++ show vencedor
+                putStrLn $ "Sua aposta: " ++ show aposta
+                
+                if ganhou
+                  then putStrLn $ "\n🎉 Parabéns! Você ganhou R$ " ++ show premio ++ "!"
+                  else putStrLn "\n😔 Que pena! Você não ganhou."
+                
+                maybeJogadorAtualizado <- buscarJogadorPorID pid
+                case maybeJogadorAtualizado of
+                  Just j' -> putStrLn $ "💰 Saldo atualizado: R$ " ++ show (saldo j')
+                  Nothing -> return ()
