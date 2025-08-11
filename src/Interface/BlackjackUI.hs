@@ -54,9 +54,41 @@ cartaVisual carta = do
                                    ]
            ]
 
-cartasVisuais :: [Logica.Carta] -> UI Element
-cartasVisuais cs = UI.div #+ map cartaVisual cs
-    # set UI.style [("display", "flex"), ("justify-content", "center")]
+cartaVirada :: UI Element
+cartaVirada = UI.div # set UI.style
+    [ ("display", "inline-block")
+    , ("width", "40px")
+    , ("height", "60px")
+    , ("margin", "2px")
+    , ("background", "white")
+    , ("border", "1.5px solid #333")
+    , ("border-radius", "6px")
+    , ("box-shadow", "1px 1px 4px #0008")
+    , ("position", "relative")
+    ] # set UI.class_ "carta"
+    #+ [ UI.span # set UI.text "?"
+             # set UI.style [ ("font-size", "2em")
+                           , ("color", "#222")
+                           , ("position", "absolute")
+                           , ("top", "50%")
+                           , ("left", "50%")
+                           , ("transform", "translate(-50%, -50%)")
+                           ]
+       ]
+
+cartasVisuais :: Bool -> [Logica.Carta] -> UI Element
+cartasVisuais mostrarTodas cartas = do
+    let cartasParaMostrar = case cartas of
+            [] -> []
+            [x] -> [Just x]
+            (x:xs) -> if mostrarTodas
+                      then map Just cartas
+                      else Just x : map (const Nothing) xs
+    
+    UI.div #+ (map (\mc -> case mc of
+            Just c -> cartaVisual c
+            Nothing -> cartaVirada) cartasParaMostrar)
+        # set UI.style [("display", "flex"), ("justify-content", "center")]
 
 data EstadoBJ = EstadoBJ
     { playerId   :: PlayerID
@@ -71,18 +103,17 @@ novaPartida :: PlayerID -> IO EstadoBJ
 novaPartida pid = do
     let bar = Logica.baralho
     (j1, bar1) <- Logica.sortCarta bar
-    (b1, bar2) <- Logica.sortCarta bar1
+    (d1, bar2) <- Logica.sortCarta bar1
     (j2, bar3) <- Logica.sortCarta bar2
-    (b2, bar4) <- Logica.sortCarta bar3
+    (d2, bar4) <- Logica.sortCarta bar3
+    
     let mj = [j1, j2]
-    let mb = [b1, b2]
+    let mb = [d1, d2]
     let pontBanca = Logica.pontuacao mb
-    let st
-          | pontBanca == 21 = "O Oponente Venceu"
-          | otherwise       = ""
+    let st = if pontBanca == 21 then "O Oponente Venceu" else ""
     let terminou = pontBanca == 21
-    when terminou $ do
-        removerSaldo pid 10
+    
+    when terminou $ removerSaldo pid 10
     return $ EstadoBJ pid mj mb bar4 st terminou
 
 atualizarSaldoPorResultado :: PlayerID -> String -> IO ()
@@ -101,25 +132,29 @@ pedirCarta pid est
           Nothing -> return est
           Just jog ->
             if saldo jog <= 0 then return est else do
-              (nova, bar1) <- Logica.sortCarta (baralho est)
+              (nova, novoBaralho) <- Logica.sortCarta (baralho est)
               let mj = maoJogador est ++ [nova]
               let somaJ = Logica.pontuacao mj
+              
               if somaJ > 21
                 then do
-                  (mb, bar2) <- loopBanca (maoBanca est) bar1
+                  (mb, barFinal) <- loopBanca (maoBanca est) novoBaralho
                   let somaB = Logica.pontuacao mb
-                  let resultado
-                        | somaJ > 21 && somaB > 21 =
-                            if somaJ == somaB then "Empate"
-                            else if somaJ < somaB then "Você Venceu"
-                            else "O Oponente Venceu"
-                        | somaB > 21 = "Você Venceu"
-                        | otherwise = "O Oponente Venceu"
-
+                  let resultado = if somaB > 21 then "Empate" else "O Oponente Venceu"
+                  
                   atualizarSaldoPorResultado pid resultado
-
-                  return est { playerId = pid, maoJogador = mj, maoBanca = mb, baralho = bar2, status = resultado, fim = True }
-                else return est { playerId = pid, maoJogador = mj, baralho = bar1 }
+                  return est { 
+                    maoJogador = mj, 
+                    maoBanca = mb, 
+                    baralho = barFinal,
+                    status = resultado, 
+                    fim = True 
+                  }
+                else do
+                  return est { 
+                    maoJogador = mj, 
+                    baralho = novoBaralho
+                  }
 
 parar :: PlayerID -> EstadoBJ -> IO EstadoBJ
 parar pid est
@@ -135,19 +170,15 @@ parar pid est
               let somaJ = Logica.pontuacao mj
               let somaB = Logica.pontuacao mb
               let resultado
-                    | somaJ > 21 && somaB > 21 =
-                        if somaJ == somaB then "Empate"
-                        else if somaJ < somaB then "Você Venceu"
-                        else "O Oponente Venceu"
+                    | somaJ > 21 && somaB > 21 = "Empate"
                     | somaJ > 21 = "O Oponente Venceu"
                     | somaB > 21 = "Você Venceu"
                     | somaJ > somaB = "Você Venceu"
                     | somaB > somaJ = "O Oponente Venceu"
                     | otherwise = "Empate"
-
+              
               atualizarSaldoPorResultado pid resultado
-
-              return est { playerId = pid, maoBanca = mb, baralho = bar1, status = resultado, fim = True }
+              return est { maoBanca = mb, baralho = bar1, status = resultado, fim = True }
 
 loopBanca :: [Logica.Carta] -> [Logica.Carta] -> IO ([Logica.Carta], [Logica.Carta])
 loopBanca pb baralho = do
@@ -163,7 +194,6 @@ blackjackUI window playerId voltarAoMenu = do
     body <- getBody window
     void $ element body # set UI.children []
 
-    -- Adicionar CSS para responsividade
     void $ UI.mkElement "style" # set UI.html 
         "@media (max-width: 768px) { \
         \  .responsive-nav { flex-direction: column !important; gap: 8px !important; padding: 12px 15px !important; } \
@@ -255,7 +285,6 @@ blackjackUI window playerId voltarAoMenu = do
                           , ("text-shadow", "1px 1px 3px #000")
                           ]
 
-        -- Informação sobre o valor da aposta
         apostaInfo <- UI.div #+ [string "🎯 Aposta por partida: R$ 10,00"]
                             # set UI.style
                                 [ ("background", "rgba(255, 215, 0, 0.15)")
@@ -296,7 +325,7 @@ blackjackUI window playerId voltarAoMenu = do
                                  [ ("font-size", "clamp(1em, 2.5vw, 1.2em)")
                                  , ("margin-bottom", "8px")
                                  ]
-        bancaLabel   <- UI.h2 #+ [string "Cartas visíveis da banca"]
+        bancaLabel   <- UI.h2 #+ [string "Cartas da banca"]
                              # set UI.style 
                                  [ ("font-size", "clamp(1em, 2.5vw, 1.2em)")
                                  , ("margin-bottom", "8px")
@@ -373,28 +402,28 @@ blackjackUI window playerId voltarAoMenu = do
         let atualizarUI :: UI ()
             atualizarUI = do
                 estado <- liftIO $ readIORef estadoRef
-                jogadorCartasElem <- cartasVisuais (maoJogador estado)
+                
+                jogadorCartasElem <- cartasVisuais True (maoJogador estado)
                 element jogadorCartasDiv # set children [jogadorCartasElem]
+                
+                bancaCartasElem <- cartasVisuais (fim estado) (maoBanca estado)
+                element bancaCartasDiv # set children [bancaCartasElem]
+                
                 if fim estado
-                  then do
-                    bancaCartasElem <- cartasVisuais (maoBanca estado)
-                    element bancaCartasDiv # set children [bancaCartasElem]
-                    element bancaPontuacao # set UI.text ("Total Banca: " ++ show (Logica.pontuacao (maoBanca estado)))
-                  else do
-                    let cartasBanca = case maoBanca estado of
-                                        []    -> []
-                                        (x:_) -> [x]
-                    bancaCartasElem <- cartasVisuais cartasBanca
-                    element bancaCartasDiv # set children [bancaCartasElem]
-                    element bancaPontuacao # set UI.text "Total Banca: ?"
+                  then element bancaPontuacao # set UI.text ("Total Banca: " ++ show (Logica.pontuacao (maoBanca estado)))
+                  else element bancaPontuacao # set UI.text "Total Banca: ?"
+                
                 element jogadorPontuacao # set UI.text ("Total Jogador: " ++ show (Logica.pontuacao (maoJogador estado)))
+                
                 if status estado /= ""
                     then element resultado # set UI.text (status estado)
                     else element resultado # set UI.text ""
+                
                 let fimjogo = fim estado
                 setBtnEnabled btnPedirCarta (not fimjogo)
                 setBtnEnabled btnParar      (not fimjogo)
                 setBtnEnabled btnNovaPartida fimjogo
+                
                 maybeJogador' <- liftIO $ buscarJogadorPorID playerId
                 case maybeJogador' of
                   Just jog' -> do
@@ -440,5 +469,4 @@ blackjackUI window playerId voltarAoMenu = do
       Nothing -> do
         erro <- UI.div # set UI.text "Jogador não encontrado."
                       # set UI.style [("color", "red"), ("font-weight", "bold"), ("font-size", "1.2em")]
-
         void $ element body #+ [element erro]
