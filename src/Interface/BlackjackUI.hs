@@ -141,11 +141,17 @@ pedirCarta pid est
               
               if somaJ > 21
                 then do
-                  atualizarSaldoPorResultado pid "O Oponente Venceu"
+                  (mb, barFinal) <- loopBanca (maoBanca est) baralho1
+                  let somaB = Logica.pontuacao mb
+                  
+                  let resultado = if somaB > 21 then "Empate" else "O Oponente Venceu"
+                  
+                  atualizarSaldoPorResultado pid resultado
                   return est { 
-                    maoJogador = mj, 
-                    baralho = baralho1,
-                    status = "O Oponente Venceu", 
+                    maoJogador = mj,
+                    maoBanca = mb,
+                    baralho = barFinal,
+                    status = resultado, 
                     fim = True 
                   }
                 else do
@@ -156,32 +162,11 @@ pedirCarta pid est
                       let mb = maoBanca est ++ [novaBanca]
                       let novaSomaB = Logica.pontuacao mb
                       
-                      if novaSomaB > 21
-                        then do
-                          atualizarSaldoPorResultado pid "Você Venceu"
-                          return est {
-                            maoJogador = mj,
-                            maoBanca = mb,
-                            baralho = baralho2,
-                            status = "Você Venceu",
-                            fim = True
-                          }
-                        else if novaSomaB == 21
-                          then do
-                            atualizarSaldoPorResultado pid "O Oponente Venceu"
-                            return est {
-                              maoJogador = mj,
-                              maoBanca = mb,
-                              baralho = baralho2,
-                              status = "O Oponente Venceu",
-                              fim = True
-                            }
-                          else
-                            return est {
-                              maoJogador = mj,
-                              maoBanca = mb,
-                              baralho = baralho2
-                            }
+                      return est {
+                        maoJogador = mj,
+                        maoBanca = mb,
+                        baralho = baralho2
+                      }
                     else
                       return est {
                         maoJogador = mj,
@@ -201,6 +186,7 @@ parar pid est
               let mj = maoJogador est
               let somaJ = Logica.pontuacao mj
               let somaB = Logica.pontuacao mb
+              
               let resultado
                     | somaJ > 21 && somaB > 21 = "Empate"
                     | somaJ > 21 = "O Oponente Venceu"
@@ -215,7 +201,7 @@ parar pid est
 loopBanca :: [Logica.Carta] -> [Logica.Carta] -> IO ([Logica.Carta], [Logica.Carta])
 loopBanca pb baralho = do
     let somaB = Logica.pontuacao pb
-    if somaB < 17
+    if somaB < 17 && somaB <= 21
         then do
             (novaBan, baralho1) <- Logica.sortCarta baralho
             loopBanca (pb ++ [novaBan]) baralho1
@@ -502,3 +488,4 @@ blackjackUI window playerId voltarAoMenu = do
         erro <- UI.div # set UI.text "Jogador não encontrado."
                       # set UI.style [("color", "red"), ("font-weight", "bold"), ("font-size", "1.2em")]
         void $ element body #+ [element erro]
+
