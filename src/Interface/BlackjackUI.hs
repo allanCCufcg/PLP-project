@@ -104,20 +104,31 @@ data EstadoBJ = EstadoBJ
 
 novaPartida :: PlayerID -> IO EstadoBJ
 novaPartida pid = do
-    let bar = Logica.baralho
-    (j1, bar1) <- Logica.sortCarta bar
-    (d1, bar2) <- Logica.sortCarta bar1
-    (j2, bar3) <- Logica.sortCarta bar2
-    (d2, bar4) <- Logica.sortCarta bar3
-    
-    let mj = [j1, j2]
-    let mb = [d1, d2]
-    let pontBanca = Logica.pontuacao mb
-    let st = if pontBanca == 21 then "O Oponente Venceu" else ""
-    let terminou = pontBanca == 21
-    
-    when terminou $ removerSaldo pid 10
-    return $ EstadoBJ pid mj mb bar4 st terminou
+    maybeJogador <- buscarJogadorPorID pid
+    case maybeJogador of
+        Nothing -> do
+            let estadoInicial = EstadoBJ pid [] [] [] "Jogador não encontrado" True
+            return estadoInicial
+        Just jogador ->
+            if saldo jogador < 10
+                then do
+                    let estadoInicial = EstadoBJ pid [] [] [] "💸 Saldo insuficiente (mínimo R$ 10)" True
+                    return estadoInicial
+                else do
+                    let bar = Logica.baralho
+                    (j1, bar1) <- Logica.sortCarta bar
+                    (d1, bar2) <- Logica.sortCarta bar1
+                    (j2, bar3) <- Logica.sortCarta bar2
+                    (d2, bar4) <- Logica.sortCarta bar3
+                    
+                    let mj = [j1, j2]
+                    let mb = [d1, d2]
+                    let pontBanca = Logica.pontuacao mb
+                    let st = if pontBanca == 21 then "O Oponente Venceu" else ""
+                    let terminou = pontBanca == 21
+                    
+                    when terminou $ removerSaldo pid 10
+                    return $ EstadoBJ pid mj mb bar4 st terminou
 
 atualizarSaldoPorResultado :: PlayerID -> String -> IO ()
 atualizarSaldoPorResultado pid resultado = do
@@ -132,46 +143,48 @@ pedirCarta pid est
     | otherwise = do
         maybeJogador <- buscarJogadorPorID pid
         case maybeJogador of
-          Nothing -> return est
+          Nothing -> return est { status = "Jogador não encontrado", fim = True }
           Just jog ->
-            if saldo jog <= 0 then return est else do
-              (novaJogador, baralho1) <- Logica.sortCarta (baralho est)
-              let mj = maoJogador est ++ [novaJogador]
-              let somaJ = Logica.pontuacao mj
-              
-              if somaJ > 21
-                then do
-                  (mb, barFinal) <- loopBanca (maoBanca est) baralho1
-                  let somaB = Logica.pontuacao mb
-                  
-                  let resultado = if somaB > 21 then "Empate" else "O Oponente Venceu"
-                  
-                  atualizarSaldoPorResultado pid resultado
-                  return est { 
-                    maoJogador = mj,
-                    maoBanca = mb,
-                    baralho = barFinal,
-                    status = resultado, 
-                    fim = True 
-                  }
-                else do
-                  let somaB = Logica.pontuacao (maoBanca est)
-                  if somaB < 17
-                    then do
-                      (novaBanca, baralho2) <- Logica.sortCarta baralho1
-                      let mb = maoBanca est ++ [novaBanca]
-                      let novaSomaB = Logica.pontuacao mb
-                      
-                      return est {
-                        maoJogador = mj,
-                        maoBanca = mb,
-                        baralho = baralho2
-                      }
-                    else
-                      return est {
-                        maoJogador = mj,
-                        baralho = baralho1
-                      }
+            if saldo jog < 10
+              then return est { status = "💸 Saldo insuficiente (mínimo R$ 10)", fim = True }
+              else do
+                (novaJogador, baralho1) <- Logica.sortCarta (baralho est)
+                let mj = maoJogador est ++ [novaJogador]
+                let somaJ = Logica.pontuacao mj
+                
+                if somaJ > 21
+                  then do
+                    (mb, barFinal) <- loopBanca (maoBanca est) baralho1
+                    let somaB = Logica.pontuacao mb
+                    
+                    let resultado = if somaB > 21 then "Empate" else "O Oponente Venceu"
+                    
+                    atualizarSaldoPorResultado pid resultado
+                    return est { 
+                      maoJogador = mj,
+                      maoBanca = mb,
+                      baralho = barFinal,
+                      status = resultado, 
+                      fim = True 
+                    }
+                  else do
+                    let somaB = Logica.pontuacao (maoBanca est)
+                    if somaB < 17
+                      then do
+                        (novaBanca, baralho2) <- Logica.sortCarta baralho1
+                        let mb = maoBanca est ++ [novaBanca]
+                        let novaSomaB = Logica.pontuacao mb
+                        
+                        return est {
+                          maoJogador = mj,
+                          maoBanca = mb,
+                          baralho = baralho2
+                        }
+                      else
+                        return est {
+                          maoJogador = mj,
+                          baralho = baralho1
+                        }
 
 parar :: PlayerID -> EstadoBJ -> IO EstadoBJ
 parar pid est
@@ -179,24 +192,26 @@ parar pid est
     | otherwise = do
         maybeJogador <- buscarJogadorPorID pid
         case maybeJogador of
-          Nothing -> return est
+          Nothing -> return est { status = "Jogador não encontrado", fim = True }
           Just jog ->
-            if saldo jog <= 0 then return est else do
-              (mb, barFinal) <- loopBanca (maoBanca est) (baralho est)
-              let mj = maoJogador est
-              let somaJ = Logica.pontuacao mj
-              let somaB = Logica.pontuacao mb
-              
-              let resultado
-                    | somaJ > 21 && somaB > 21 = "Empate"
-                    | somaJ > 21 = "O Oponente Venceu"
-                    | somaB > 21 = "Você Venceu"
-                    | somaJ > somaB = "Você Venceu"
-                    | somaB > somaJ = "O Oponente Venceu"
-                    | otherwise = "Empate"
-              
-              atualizarSaldoPorResultado pid resultado
-              return est { maoBanca = mb, baralho = barFinal, status = resultado, fim = True }
+            if saldo jog < 10
+              then return est { status = "💸 Saldo insuficiente (mínimo R$ 10)", fim = True }
+              else do
+                (mb, barFinal) <- loopBanca (maoBanca est) (baralho est)
+                let mj = maoJogador est
+                let somaJ = Logica.pontuacao mj
+                let somaB = Logica.pontuacao mb
+                
+                let resultado
+                      | somaJ > 21 && somaB > 21 = "Empate"
+                      | somaJ > 21 = "O Oponente Venceu"
+                      | somaB > 21 = "Você Venceu"
+                      | somaJ > somaB = "Você Venceu"
+                      | somaB > somaJ = "O Oponente Venceu"
+                      | otherwise = "Empate"
+                
+                atualizarSaldoPorResultado pid resultado
+                return est { maoBanca = mb, baralho = barFinal, status = resultado, fim = True }
 
 loopBanca :: [Logica.Carta] -> [Logica.Carta] -> IO ([Logica.Carta], [Logica.Carta])
 loopBanca pb baralho = do
